@@ -7,7 +7,7 @@ from alembic import context
 from app.db.base import Base
 
 # Import all models here so Alembic can detect them
-from app.models import Document
+from app.models import Document, DocumentChunk
 
 
 config = context.config
