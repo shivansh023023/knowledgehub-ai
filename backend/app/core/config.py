@@ -16,6 +16,15 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # Qdrant
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_COLLECTION: str = "document_chunks"
+
+    # Embeddings
+    EMBEDDING_MODEL: str = "BAAI/bge-base-en-v1.5"
+    EMBEDDING_DIMENSION: int = 768
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

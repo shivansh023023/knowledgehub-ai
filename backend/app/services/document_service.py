@@ -4,8 +4,10 @@ from sqlalchemy.orm import Session
 from app.models.document import DocumentStatus
 from app.repositories.chunk_repository import ChunkRepository
 from app.services.chunk_service import ChunkService
+from app.services.embedding_service import EmbeddingService
 from app.services.file_service import FileService
 from app.services.parser_service import ParserService
+from app.vectorstore.qdrant_repository import QdrantRepository
 
 
 class DocumentService:
@@ -19,6 +21,9 @@ class DocumentService:
         self.chunk_service = ChunkService()
         self.chunk_repository = ChunkRepository(db)
 
+        self.embedding_service = EmbeddingService()
+        self.qdrant_repository = QdrantRepository()
+
     def upload_document(self, file: UploadFile):
         print("1. Starting upload")
 
@@ -26,9 +31,17 @@ class DocumentService:
         print("2. File saved")
 
         try:
+            # -------------------------
+            # Upload Complete
+            # -------------------------
+
             document.status = DocumentStatus.UPLOADED
             self.db.commit()
             print("3. Status -> UPLOADED")
+
+            # -------------------------
+            # Parsing
+            # -------------------------
 
             document.status = DocumentStatus.PARSING
             self.db.commit()
@@ -37,6 +50,10 @@ class DocumentService:
             text = self.parser_service.parse(document.filepath)
             print(f"5. Parsed {len(text)} characters")
 
+            # -------------------------
+            # Chunking
+            # -------------------------
+
             document.status = DocumentStatus.CHUNKING
             self.db.commit()
             print("6. Status -> CHUNKING")
@@ -44,16 +61,46 @@ class DocumentService:
             chunks = self.chunk_service.split(text)
             print(f"7. Created {len(chunks)} chunks")
 
-            self.chunk_repository.save_chunks(
+            chunk_objects = self.chunk_repository.save_chunks(
                 document_id=document.id,
                 chunks=chunks,
             )
+
             print("8. Chunks saved")
+
+            # -------------------------
+            # Embedding
+            # -------------------------
+
+            document.status = DocumentStatus.EMBEDDING
+            self.db.commit()
+            print("9. Status -> EMBEDDING")
+
+            texts = [
+                chunk.content
+                for chunk in chunk_objects
+            ]
+
+            embeddings = self.embedding_service.embed(texts)
+
+            print(f"10. Generated {len(embeddings)} embeddings")
+
+            self.qdrant_repository.insert_embeddings(
+                chunks=chunk_objects,
+                embeddings=embeddings,
+            )
+
+            print("11. Stored vectors in Qdrant")
+
+            # -------------------------
+            # Finished
+            # -------------------------
 
             document.status = DocumentStatus.READY
             self.db.commit()
             self.db.refresh(document)
-            print("9. DONE")
+
+            print("12. DONE")
 
             return document
 
