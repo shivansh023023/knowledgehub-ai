@@ -1,7 +1,14 @@
-from datetime import datetime
+from datetime import datetime, UTC
 import uuid
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -9,6 +16,14 @@ from app.db.base import Base
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id",
+            "chunk_index",
+            name="uq_document_chunk_index",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(
         String(36),
@@ -39,11 +54,11 @@ class DocumentChunk(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-    DateTime,
-    default=datetime.utcnow,
-    nullable=False,
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        nullable=False,
     )
 
     document: Mapped["Document"] = relationship(
-    back_populates="chunks",
+        back_populates="chunks",
     )
