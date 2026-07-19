@@ -11,12 +11,12 @@ from app.models.document import Document, DocumentStatus
 
 
 class FileService:
-    @staticmethod
-    def upload_document(
-        db: Session,
-        file: UploadFile,
-    ) -> Document:
+    """Handles file storage and document persistence."""
 
+    def __init__(self, db: Session):
+        self.db = db
+
+    def upload_file(self, file: UploadFile) -> Document:
         if not file.filename:
             raise HTTPException(
                 status_code=400,
@@ -48,9 +48,7 @@ class FileService:
         )
 
         extension = Path(file.filename).suffix.lower()
-
         filename = f"{uuid4()}{extension}"
-
         filepath = upload_dir / filename
 
         with filepath.open("wb") as buffer:
@@ -75,8 +73,8 @@ class FileService:
             status=DocumentStatus.UPLOADING,
         )
 
-        db.add(document)
-        db.commit()
-        db.refresh(document)
+        self.db.add(document)
+        self.db.commit()
+        self.db.refresh(document)
 
         return document

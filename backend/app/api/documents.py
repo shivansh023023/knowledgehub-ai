@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.schemas.document import UploadResponse
-from app.services.file_service import FileService
+from app.services.document_service import DocumentService
 
 router = APIRouter(
     prefix="/documents",
@@ -20,10 +20,9 @@ def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    document = FileService.upload_document(
-        db=db,
-        file=file,
-    )
+    document_service = DocumentService(db)
+
+    document = document_service.upload_document(file)
 
     return UploadResponse(
         message="File uploaded successfully.",
