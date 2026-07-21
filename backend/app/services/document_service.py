@@ -81,7 +81,7 @@ class DocumentService:
                 for chunk in chunk_objects
             ]
 
-            embeddings = self.embedding_service.embed(texts)
+            embeddings = self.embedding_service.embed_documents(texts)
 
             print(f"10. Generated {len(embeddings)} embeddings")
 

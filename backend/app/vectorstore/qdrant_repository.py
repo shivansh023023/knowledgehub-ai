@@ -1,4 +1,9 @@
-from qdrant_client.http.models import PointStruct
+from qdrant_client.http.models import (
+    Filter,
+    FieldCondition,
+    MatchValue,
+    PointStruct,
+)
 
 from app.core.config import settings
 from app.models.document_chunk import DocumentChunk
@@ -6,7 +11,7 @@ from app.vectorstore.qdrant_client import client
 
 
 class QdrantRepository:
-    """Handles vector storage in Qdrant."""
+    """Handles vector storage and search in Qdrant."""
 
     def __init__(self):
         self.client = client
@@ -25,7 +30,6 @@ class QdrantRepository:
         points = []
 
         for chunk, embedding in zip(chunks, embeddings):
-
             points.append(
                 PointStruct(
                     id=str(chunk.id),
@@ -41,3 +45,31 @@ class QdrantRepository:
             collection_name=settings.QDRANT_COLLECTION,
             points=points,
         )
+
+    def search(
+        self,
+        query_embedding: list[float],
+        top_k: int = 5,
+        document_id: str | None = None,
+    ):
+
+        query_filter = None
+
+        if document_id is not None:
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="document_id",
+                        match=MatchValue(value=document_id),
+                    )
+                ]
+            )
+
+        results = self.client.query_points(
+            collection_name=settings.QDRANT_COLLECTION,
+            query=query_embedding,
+            query_filter=query_filter,
+            limit=top_k,
+        )
+
+        return results.points
