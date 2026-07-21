@@ -35,3 +35,16 @@ class DocumentRepository:
         return list(
             self.db.scalars(stmt).all()
         )
+
+    def list_documents(
+        self,
+    ) -> list[Document]:
+
+        stmt = (
+            select(Document)
+            .order_by(Document.created_at.desc())
+        )
+
+        return list(
+            self.db.scalars(stmt).all()
+        )

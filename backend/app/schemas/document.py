@@ -21,3 +21,13 @@ class DocumentResponse(BaseModel):
 class UploadResponse(BaseModel):
     message: str
     document: DocumentResponse
+
+
+class DocumentListItem(BaseModel):
+    id: str
+    original_filename: str
+    file_size: int
+    status: DocumentStatus
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

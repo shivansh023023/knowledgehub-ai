@@ -10,8 +10,8 @@ from app.services.parser_service import ParserService
 from app.vectorstore.qdrant_repository import QdrantRepository
 
 
-class DocumentService:
-    """Orchestrates the complete document ingestion pipeline."""
+class DocumentUploadService:
+    """Handles the complete document upload and ingestion pipeline."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -19,6 +19,7 @@ class DocumentService:
         self.file_service = FileService(db)
         self.parser_service = ParserService()
         self.chunk_service = ChunkService()
+
         self.chunk_repository = ChunkRepository(db)
 
         self.embedding_service = EmbeddingService()
