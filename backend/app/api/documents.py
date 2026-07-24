@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -44,3 +44,18 @@ def upload_document(
         message="File uploaded successfully.",
         document=document,
     )
+
+
+@router.delete(
+    "/{document_id}",
+    status_code=204,
+)
+def delete_document(
+    document_id: str,
+    db: Session = Depends(get_db),
+):
+    document_service = DocumentManagementService(db)
+
+    document_service.delete_document(document_id)
+
+    return Response(status_code=204)

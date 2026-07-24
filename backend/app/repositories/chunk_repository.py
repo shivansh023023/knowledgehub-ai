@@ -1,6 +1,6 @@
 import tiktoken
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.models.document_chunk import DocumentChunk
@@ -53,3 +53,15 @@ class ChunkRepository:
         return list(
             self.db.scalars(stmt).all()
         )
+
+    def delete_by_document_id(
+        self,
+        document_id: str,
+    ) -> None:
+
+        stmt = (
+            delete(DocumentChunk)
+            .where(DocumentChunk.document_id == document_id)
+        )
+
+        self.db.execute(stmt)

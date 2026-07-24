@@ -48,3 +48,10 @@ class DocumentRepository:
         return list(
             self.db.scalars(stmt).all()
         )
+
+    def delete(
+        self,
+        document: Document,
+    ) -> None:
+
+        self.db.delete(document)

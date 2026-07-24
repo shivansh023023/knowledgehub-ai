@@ -78,3 +78,10 @@ class FileService:
         self.db.refresh(document)
 
         return document
+
+    def delete_file(
+        self,
+        filepath: str,
+    ) -> None:
+
+        Path(filepath).unlink(missing_ok=True)

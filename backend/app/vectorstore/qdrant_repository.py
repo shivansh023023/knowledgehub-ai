@@ -2,6 +2,7 @@ from qdrant_client.http.models import (
     Filter,
     FieldCondition,
     MatchValue,
+    PointIdsList,
     PointStruct,
 )
 
@@ -73,3 +74,20 @@ class QdrantRepository:
         )
 
         return results.points
+
+    def delete_document_vectors(
+        self,
+        document_id: str,
+    ) -> None:
+
+        self.client.delete(
+            collection_name=settings.QDRANT_COLLECTION,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key="document_id",
+                        match=MatchValue(value=document_id),
+                    )
+                ]
+            ),
+        )
