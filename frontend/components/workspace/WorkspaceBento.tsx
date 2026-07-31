@@ -4,43 +4,39 @@ import UploadCard from "./cards/UploadCard";
 import ChatCard from "./cards/ChatCard";
 import KnowledgeBaseCard from "./cards/KnowledgeBaseCard";
 import SearchCard from "./cards/SearchCard";
-import ModelCard from "./cards/ModelCard";
+
 import FutureCard from "./cards/FutureCard";
 
 export const workspaceCards: BentoCard[] = [
   {
-    id: "upload-documents",
-    size: "large",
-    content: <UploadCard />,
-  },
-
-  {
-    id: "ai-chat",
-    size: "large",
+    id: "chat",
+    area: "chat",
     content: <ChatCard />,
   },
 
   {
-    id: "knowledge-base",
-    size: "medium",
+    id: "upload",
+    area: "upload",
+    content: <UploadCard />,
+  },
+
+  {
+    id: "knowledge",
+    area: "knowledge",
     content: <KnowledgeBaseCard />,
   },
 
-  {
-    id: "semantic-search",
-    size: "medium",
-    content: <SearchCard />,
-  },
+
 
   {
-    id: "groq",
-    size: "small",
-    content: <ModelCard />,
-  },
-
-  {
-    id: "graphrag",
-    size: "small",
+    id: "graph",
+    area: "graph",
     content: <FutureCard />,
+  },
+
+  {
+    id: "search",
+    area: "search",
+    content: <SearchCard />,
   },
 ];

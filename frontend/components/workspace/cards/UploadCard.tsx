@@ -57,17 +57,17 @@ export default function UploadCard() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-6">
+    <div className="flex h-full flex-col gap-2">
       <div>
-        <p className="text-sm text-zinc-400">
+        <p className="text-xs text-zinc-500">
           Knowledge
         </p>
 
-        <h2 className="mt-2 text-3xl font-semibold text-white">
+        <h2 className="mt-1 text-lg font-semibold text-white">
           Upload Documents
         </h2>
 
-        <p className="mt-2 text-zinc-500">
+        <p className="mt-1 text-xs text-zinc-500">
           Drag & drop PDFs, DOCX or TXT files.
         </p>
       </div>

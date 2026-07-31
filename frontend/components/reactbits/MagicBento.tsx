@@ -6,17 +6,19 @@ import { ReactNode } from "react";
 export interface BentoCard {
   id: string;
 
-  size?: "small" | "medium" | "large";
+  area: string;
+
+  content?: ReactNode;
+
+  className?: string;
 
   color?: string;
+
+  label?: string;
 
   title?: string;
 
   description?: string;
-
-  label?: string;
-
-  content?: ReactNode;
 }
 
 export interface BentoProps {
@@ -476,7 +478,14 @@ const BentoCardGrid: React.FC<{
   gridRef?: React.RefObject<HTMLDivElement | null>;
 }> = ({ children, gridRef }) => (
   <div
-    className="bento-section w-full max-w-7xl mx-auto px-6 py-6 select-none relative"
+    className="
+    bento-section
+    w-full
+    h-full
+    mx-auto
+    px-2
+    lg:px-3
+  "
     style={{ fontSize: "clamp(1rem, 0.9rem + 0.5vw, 1.5rem)" }}
     ref={gridRef}
   >
@@ -516,18 +525,7 @@ const MagicBento: React.FC<BentoProps> = ({
   const gridRef = useRef<HTMLDivElement>(null);
   const isMobile = useMobileDetection();
   const shouldDisableAnimations = disableAnimations || isMobile;
-  const getCardSizeClass = (size?: BentoCard["size"]) => {
-  switch (size) {
-    case "large":
-      return "lg:col-span-2 lg:row-span-2";
-
-    case "medium":
-      return "lg:col-span-2";
-
-    default:
-      return "";
-  }
-};
+  
 
   return (
     <>
@@ -548,10 +546,8 @@ const MagicBento: React.FC<BentoProps> = ({
           }
           
           .card-responsive {
-            grid-template-columns: 1fr;
-            width: 90%;
-            margin: 0 auto;
-            padding: 0.5rem;
+            width: 100%;
+            height: 100%;
           }
           
           @media (min-width: 600px) {
@@ -562,7 +558,9 @@ const MagicBento: React.FC<BentoProps> = ({
           
           @media (min-width: 1024px) {
             .card-responsive {
-              grid-template-columns: repeat(4, 1fr);
+              grid-template-columns: 4fr 1fr;
+              grid-template-rows: repeat(4, 1fr);
+              height: 100%;
             }
           }
           
@@ -631,14 +629,16 @@ const MagicBento: React.FC<BentoProps> = ({
           @media (max-width: 599px) {
             .card-responsive {
               grid-template-columns: 1fr;
-              width: 90%;
+              grid-template-rows: auto;
+              width: 95%;
+              height: auto;
               margin: 0 auto;
               padding: 0.5rem;
             }
             
             .card-responsive .card {
               width: 100%;
-              min-height: 180px;
+              min-height: 120px;
             }
           }
         `}
@@ -655,9 +655,20 @@ const MagicBento: React.FC<BentoProps> = ({
       )}
 
       <BentoCardGrid gridRef={gridRef}>
-        <div className="card-responsive grid gap-2">
+       <div
+  className="card-responsive grid gap-3"
+  style={{
+    gridTemplateAreas: `
+      "chat upload"
+      "chat knowledge"
+      "chat graph"
+      "chat search"
+    `,
+  }}
+>
           {cards.map((card)=> {
-            const baseClassName = `card flex flex-col justify-between relative aspect-[4/3] min-h-[200px] w-full max-w-full p-5 rounded-[20px] border border-solid font-light overflow-hidden transition-colors duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.15)] ${
+            const baseClassName = `card flex flex-col justify-between relative
+h-full w-full max-w-full p-4 rounded-[16px] border border-solid font-light overflow-hidden transition-colors duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.15)] ${
               enableBorderGlow ? 'card--border-glow' : ''
             }`;
 
@@ -675,8 +686,11 @@ const MagicBento: React.FC<BentoProps> = ({
               return (
                 <ParticleCard
   key={card.id}
-  className={`${baseClassName} ${getCardSizeClass(card.size)}`}
-  style={cardStyle}
+  className={baseClassName}
+  style={{
+    ...cardStyle,
+    gridArea: card.area,
+  }}
   disableAnimations={shouldDisableAnimations}
   particleCount={particleCount}
   glowColor={glowColor}
@@ -718,7 +732,7 @@ const MagicBento: React.FC<BentoProps> = ({
             return (
               <div
                 key={card.id}
-                className={`${baseClassName} ${getCardSizeClass(card.size)}`}
+                
                 style={cardStyle}
                 ref={el => {
                   if (!el) return;

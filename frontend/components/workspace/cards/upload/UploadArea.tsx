@@ -33,8 +33,8 @@ export default function UploadArea({
     <div
       {...getRootProps()}
       className={`
-        flex h-56 cursor-pointer flex-col items-center justify-center
-        rounded-2xl border-2 border-dashed
+        flex h-28 cursor-pointer flex-col items-center justify-center
+        rounded-xl border-2 border-dashed
         transition-all duration-200
         ${
           isDragActive
@@ -45,19 +45,19 @@ export default function UploadArea({
     >
       <input {...getInputProps()} />
 
-      <UploadCloud className="mb-4 h-12 w-12 text-violet-400" />
+      <UploadCloud className="mb-2 h-8 w-8 text-violet-400" />
 
-      <p className="font-medium text-white">
+      <p className="text-sm font-medium text-white">
         {isDragActive
           ? "Drop your files here"
           : "Drag & Drop files"}
       </p>
 
-      <p className="mt-2 text-sm text-zinc-400">
+      <p className="mt-1 text-xs text-zinc-400">
         or click to browse
       </p>
 
-      <p className="mt-6 text-xs text-zinc-500">
+      <p className="mt-2 text-xs text-zinc-500">
         PDF • DOCX • TXT
       </p>
     </div>

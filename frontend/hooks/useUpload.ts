@@ -17,15 +17,9 @@ export function useUpload() {
   );
 
   const [loading, setLoading] = useState(false);
-
   const [progress, setProgress] = useState(0);
-
-  const [error, setError] =
-    useState<string | null>(null);
-
-  const [success, setSuccess] =
-    useState(false);
-
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [document, setDocument] =
     useState<Document | null>(null);
 
@@ -37,7 +31,6 @@ export function useUpload() {
       setProgress(0);
 
       const formData = new FormData();
-
       formData.append("file", file);
 
       const response =
@@ -45,6 +38,11 @@ export function useUpload() {
           "/documents/upload",
           formData,
           {
+            headers: {
+              "Content-Type":
+                "multipart/form-data",
+            },
+
             onUploadProgress: (
               event: AxiosProgressEvent
             ) => {
@@ -66,13 +64,11 @@ export function useUpload() {
       );
 
       setDocument(response.data.document);
-
       addDocument(response.data.document);
 
       setSuccess(true);
     } catch (err) {
       console.error(err);
-
       setError("Upload failed.");
     } finally {
       setLoading(false);

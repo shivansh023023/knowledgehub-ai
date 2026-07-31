@@ -30,7 +30,12 @@ class RAGService:
 
         # Build context
         context = "\n\n".join(
-            result["content"]
+            f"""
+Document: {result['document_name']}
+Chunk: {result['chunk_index']}
+
+{result['content']}
+""".strip()
             for result in search_results
         )
 
@@ -43,16 +48,29 @@ class RAGService:
         # Generate answer
         answer = self.llm_service.generate(prompt)
 
-        # Build sources
-        sources = [
-            {
-                "document_id": result["document_id"],
-                "document_name": result["document_name"],
-                "chunk_index": result["chunk_index"],
-                "score": result["score"],
-            }
-            for result in search_results
-        ]
+        # Build unique sources
+        seen = set()
+        sources = []
+
+        for result in search_results:
+            key = (
+                result["document_id"],
+                result["chunk_index"],
+            )
+
+            if key in seen:
+                continue
+
+            seen.add(key)
+
+            sources.append(
+                {
+                    "document_id": result["document_id"],
+                    "document_name": result["document_name"],
+                    "chunk_index": result["chunk_index"],
+                    "score": result["score"],
+                }
+            )
 
         return {
             "answer": answer,
