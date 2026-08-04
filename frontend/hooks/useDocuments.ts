@@ -1,47 +1,60 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
-
-import { useDocumentStore } from "@/stores/documentStore";
-
+import { api, deleteDocument } from "@/lib/api";
 import { DocumentListItem } from "@/types/document";
 
 export function useDocuments() {
-  const {
-    documents,
-    loading,
-    setDocuments,
-    setLoading,
-  } = useDocumentStore();
+  const [documents, setDocuments] = useState<DocumentListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
 
       const response =
-        await api.get<DocumentListItem[]>(
-          "/documents"
-        );
+        await api.get<DocumentListItem[]>("/documents");
 
       setDocuments(response.data);
     } catch (err) {
       console.error(err);
+      setError("Failed to load documents.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (documents.length === 0) {
-      fetchDocuments();
+    fetchDocuments();
+  }, [fetchDocuments]);
+
+  const removeDocument = async (id: string) => {
+    const confirmed = window.confirm(
+      "Delete this document?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteDocument(id);
+
+      setDocuments((prev) =>
+        prev.filter((doc) => doc.id !== id)
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete document.");
     }
-  }, []);
+  };
 
   return {
     documents,
     loading,
+    error,
     refresh: fetchDocuments,
+    removeDocument,
   };
 }

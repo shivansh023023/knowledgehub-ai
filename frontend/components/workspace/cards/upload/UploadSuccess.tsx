@@ -1,12 +1,31 @@
+"use client";
+
+import { useEffect } from "react";
+
 interface UploadSuccessProps {
   filename: string;
   onUploadAnother: () => void;
+
+  autoClose?: boolean;
+  onComplete?: () => void;
 }
 
 export default function UploadSuccess({
   filename,
   onUploadAnother,
+  autoClose = false,
+  onComplete,
 }: UploadSuccessProps) {
+  useEffect(() => {
+    if (!autoClose || !onComplete) return;
+
+    const timer = setTimeout(() => {
+      onComplete();
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [autoClose, onComplete]);
+
   return (
     <div className="flex h-full flex-col justify-center gap-5">
       <div className="flex items-center gap-3">
@@ -35,21 +54,29 @@ export default function UploadSuccess({
         </p>
       </div>
 
-      <button
-        onClick={onUploadAnother}
-        className="
-          rounded-xl
-          border
-          border-zinc-700
-          py-3
-          text-white
-          transition
-          hover:border-violet-500
-          hover:bg-violet-500/10
-        "
-      >
-        Upload Another
-      </button>
+      {!autoClose && (
+        <button
+          onClick={onUploadAnother}
+          className="
+            rounded-xl
+            border
+            border-zinc-700
+            py-3
+            text-white
+            transition
+            hover:border-violet-500
+            hover:bg-violet-500/10
+          "
+        >
+          Upload Another
+        </button>
+      )}
+
+      {autoClose && (
+        <p className="text-center text-sm text-zinc-500">
+          Closing automatically...
+        </p>
+      )}
     </div>
   );
 }
