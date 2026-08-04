@@ -32,11 +32,6 @@ export function useDocuments() {
   }, [fetchDocuments]);
 
   const removeDocument = async (id: string) => {
-    const confirmed = window.confirm(
-      "Delete this document?"
-    );
-
-    if (!confirmed) return;
 
     try {
       await deleteDocument(id);

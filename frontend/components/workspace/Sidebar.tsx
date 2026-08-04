@@ -3,7 +3,7 @@
 import UploadCard from "./cards/UploadCard";
 import KnowledgeBaseCard from "./cards/KnowledgeBaseCard";
 import ModelCard from "./cards/ModelCard";
-import GraphRAGCard from "./cards/GraphRAGCard";
+import GraphRAGCard from "./cards/FutureCard";
 import SearchCard from "./cards/SearchCard";
 
 export default function Sidebar() {
