@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 
-import { api } from "@/lib/api";
-
 import {
   ChatRequest,
-  ChatResponse,
   Message,
 } from "@/types/chat";
 
 import { useChatStore } from "@/stores/chatStore";
 
 export function useChat() {
-  const { messages, addMessage, clearMessages } =
-    useChatStore();
+  const {
+    messages,
+    addMessage,
+    updateMessage,
+    updateSources,
+    clearMessages,
+  } = useChatStore();
 
   const [loading, setLoading] =
     useState(false);
@@ -31,7 +33,10 @@ export function useChat() {
       setLoading(true);
       setError(null);
 
+      // ---------------------
       // User message
+      // ---------------------
+
       const userMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
@@ -40,33 +45,140 @@ export function useChat() {
 
       addMessage(userMessage);
 
+      // ---------------------
+      // Empty assistant message
+      // ---------------------
+
+      const assistantId =
+        crypto.randomUUID();
+
+      addMessage({
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        sources: [],
+      });
+
       const body: ChatRequest = {
         question,
       };
 
       const response =
-        await api.post<ChatResponse>(
-          "/chat",
-          body
+        await fetch(
+          "http://localhost:8000/api/chat/stream",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify(body),
+          }
         );
 
-      // AI response
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: response.data.answer,
-        sources: response.data.sources,
-      };
+      if (!response.ok) {
+        throw new Error(
+          "Failed to connect."
+        );
+      }
 
-      addMessage(assistantMessage);
-    } catch (err: any) {
-    console.error(err);
+      if (!response.body) {
+        throw new Error(
+          "No response stream."
+        );
+      }
 
-    console.log(err.response?.status);
-    console.log(err.response?.data);
+      const reader =
+        response.body.getReader();
 
-    setError("Failed to get response.");
-} finally {
+      const decoder =
+        new TextDecoder();
+
+      let buffer = "";
+      let assistantText = "";
+
+      while (true) {
+        const {
+          value,
+          done,
+        } = await reader.read();
+
+        if (done) break;
+
+        buffer += decoder.decode(
+          value,
+          {
+            stream: true,
+          }
+        );
+
+        while (true) {
+          const newline =
+            buffer.indexOf("\n");
+
+          if (newline === -1)
+            break;
+
+          const line =
+            buffer
+              .slice(0, newline)
+              .trim();
+
+          buffer =
+            buffer.slice(
+              newline + 1
+            );
+
+          if (!line) continue;
+
+          const event =
+            JSON.parse(line);
+
+          if (
+            event.type === "token"
+          ) {
+            assistantText +=
+              event.content;
+
+            updateMessage(
+              assistantId,
+              assistantText
+            );
+
+            // Let React paint
+            await new Promise<void>(
+              (resolve) =>
+                requestAnimationFrame(
+                  () => resolve()
+                )
+            );
+          }
+
+          else if (
+            event.type ===
+            "sources"
+          ) {
+            updateSources(
+              assistantId,
+              event.sources
+            );
+          }
+
+          else if (
+            event.type ===
+            "done"
+          ) {
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        "Failed to get response."
+      );
+    } finally {
       setLoading(false);
     }
   };

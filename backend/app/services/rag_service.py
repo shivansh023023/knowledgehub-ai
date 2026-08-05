@@ -1,7 +1,9 @@
+from collections.abc import Generator
+
 from app.prompts.rag_prompt import build_rag_prompt
+from app.repositories.chunk_repository import ChunkRepository
 from app.services.llm_service import LLMService
 from app.services.search_service import SearchService
-from app.repositories.chunk_repository import ChunkRepository
 
 
 class RAGService:
@@ -11,24 +13,25 @@ class RAGService:
         self,
         chunk_repository: ChunkRepository,
     ):
-        self.search_service = SearchService(chunk_repository)
+        self.search_service = SearchService(
+            chunk_repository
+        )
+
         self.llm_service = LLMService()
 
-    def chat(
+    def _prepare_prompt(
         self,
         question: str,
-    ):
-        # Retrieve relevant chunks
-        search_results = self.search_service.search(question)
+    ) -> tuple[str | None, list]:
+        """Retrieve documents and build the prompt."""
 
-        # No relevant documents found
+        search_results = self.search_service.search(
+            question
+        )
+
         if not search_results:
-            return {
-                "answer": "I couldn't find any relevant information in the uploaded documents.",
-                "sources": [],
-            }
+            return None, []
 
-        # Build context
         context = "\n\n".join(
             f"""
 Document: {result['document_name']}
@@ -39,16 +42,19 @@ Chunk: {result['chunk_index']}
             for result in search_results
         )
 
-        # Build prompt
         prompt = build_rag_prompt(
             context=context,
             question=question,
         )
 
-        # Generate answer
-        answer = self.llm_service.generate(prompt)
+        return prompt, search_results
 
-        # Build unique sources
+    def _build_sources(
+        self,
+        search_results: list,
+    ) -> list:
+        """Build unique source list."""
+
         seen = set()
         sources = []
 
@@ -66,13 +72,66 @@ Chunk: {result['chunk_index']}
             sources.append(
                 {
                     "document_id": result["document_id"],
-                    "document_name": result["document_name"],
-                    "chunk_index": result["chunk_index"],
+                    "document_name": result[
+                        "document_name"
+                    ],
+                    "chunk_index": result[
+                        "chunk_index"
+                    ],
                     "score": result["score"],
                 }
             )
 
+        return sources
+
+    def chat(
+        self,
+        question: str,
+    ):
+        """Current synchronous chat."""
+
+        prompt, search_results = (
+            self._prepare_prompt(question)
+        )
+
+        if prompt is None:
+            return {
+                "answer": (
+                    "I couldn't find any relevant "
+                    "information in the uploaded "
+                    "documents."
+                ),
+                "sources": [],
+            }
+
+        answer = self.llm_service.generate(
+            prompt
+        )
+
         return {
             "answer": answer,
-            "sources": sources,
+            "sources": self._build_sources(
+                search_results
+            ),
         }
+
+    def stream_chat(
+        self,
+        question: str,
+    ) -> tuple[
+        Generator[str, None, None] | None,
+        list,
+    ]:
+        """Streaming chat."""
+
+        prompt, search_results = (
+            self._prepare_prompt(question)
+        )
+
+        if prompt is None:
+            return None, []
+
+        return (
+            self.llm_service.stream(prompt),
+            self._build_sources(search_results),
+        )
