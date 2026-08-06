@@ -55,6 +55,8 @@ class ChatService:
                     self.conversation_repository.create()
                 )
 
+                history = ""
+
             else:
 
                 conversation = (
@@ -68,6 +70,22 @@ class ChatService:
                         "Conversation not found."
                     )
 
+                # ----------------------------
+                # Load recent history
+                # ----------------------------
+
+                previous_messages = (
+                    self.message_repository.list_recent_messages(
+                        conversation.id,
+                        limit=10,
+                    )
+                )
+
+                history = "\n\n".join(
+                    f"{message.role.capitalize()}:\n{message.content}"
+                    for message in previous_messages
+                )
+
             # ----------------------------
             # Save user message
             # ----------------------------
@@ -79,11 +97,12 @@ class ChatService:
             )
 
             # ----------------------------
-            # Generate response
+            # Generate answer
             # ----------------------------
 
             response = self.rag_service.chat(
-                question
+                question=question,
+                history=history,
             )
 
             # ----------------------------
@@ -108,7 +127,7 @@ class ChatService:
             )
 
             # ----------------------------
-            # Update conversation
+            # Update conversation timestamp
             # ----------------------------
 
             self.conversation_repository.touch(
@@ -128,7 +147,6 @@ class ChatService:
             }
 
         except Exception:
-
             self.db.rollback()
             raise
 
@@ -138,11 +156,10 @@ class ChatService:
         conversation_id: str | None = None,
     ):
         """
-        Streaming persistence will be added next.
-
-        For now we keep the existing behaviour.
+        Streaming persistence will be added later.
         """
 
         return self.rag_service.stream_chat(
-            question
+            question,
+            history="",
         )

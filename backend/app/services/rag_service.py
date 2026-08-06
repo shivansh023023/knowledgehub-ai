@@ -22,8 +22,8 @@ class RAGService:
     def _prepare_prompt(
         self,
         question: str,
+        history: str = "",
     ) -> tuple[str | None, list]:
-        """Retrieve documents and build the prompt."""
 
         search_results = self.search_service.search(
             question
@@ -45,6 +45,7 @@ Chunk: {result['chunk_index']}
         prompt = build_rag_prompt(
             context=context,
             question=question,
+            history=history,
         )
 
         return prompt, search_results
@@ -53,7 +54,6 @@ Chunk: {result['chunk_index']}
         self,
         search_results: list,
     ) -> list:
-        """Build unique source list."""
 
         seen = set()
         sources = []
@@ -87,11 +87,14 @@ Chunk: {result['chunk_index']}
     def chat(
         self,
         question: str,
+        history: str = "",
     ):
-        """Current synchronous chat."""
 
         prompt, search_results = (
-            self._prepare_prompt(question)
+            self._prepare_prompt(
+                question,
+                history,
+            )
         )
 
         if prompt is None:
@@ -118,14 +121,17 @@ Chunk: {result['chunk_index']}
     def stream_chat(
         self,
         question: str,
+        history: str = "",
     ) -> tuple[
         Generator[str, None, None] | None,
         list,
     ]:
-        """Streaming chat."""
 
         prompt, search_results = (
-            self._prepare_prompt(question)
+            self._prepare_prompt(
+                question,
+                history,
+            )
         )
 
         if prompt is None:

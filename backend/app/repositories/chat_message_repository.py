@@ -51,3 +51,29 @@ class ChatMessageRepository:
         return list(
             self.db.scalars(stmt).all()
         )
+
+    def list_recent_messages(
+        self,
+        conversation_id: str,
+        limit: int = 10,
+    ) -> list[ChatMessage]:
+
+        stmt = (
+            select(ChatMessage)
+            .where(
+                ChatMessage.conversation_id
+                == conversation_id
+            )
+            .order_by(
+                ChatMessage.created_at.desc()
+            )
+            .limit(limit)
+        )
+
+        messages = list(
+            self.db.scalars(stmt).all()
+        )
+
+        messages.reverse()
+
+        return messages
