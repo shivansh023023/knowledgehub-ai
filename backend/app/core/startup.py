@@ -1,7 +1,22 @@
-from qdrant_client.http.models import Distance, VectorParams
+
+from qdrant_client.http.models import (
+    Distance,
+    VectorParams,
+)
 
 from app.core.config import settings
+from app.db.database import engine
+from app.db.base import Base
+
+# Import all models so SQLAlchemy knows about them
+from app.models import *  # noqa: F401,F403
+
 from app.vectorstore.qdrant_client import client
+
+
+def initialize_database() -> None:
+    Base.metadata.create_all(bind=engine)
+    print("✓ SQLite database initialized.")
 
 
 def initialize_qdrant() -> None:

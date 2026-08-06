@@ -7,11 +7,15 @@ from app.api.chat import router as chat_router
 from app.api.documents import router as documents_router
 from app.api.search import router as search_router
 from app.core.config import settings
-from app.core.startup import initialize_qdrant
+from app.core.startup import (
+    initialize_database,
+    initialize_qdrant,
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    initialize_database()
     initialize_qdrant()
     yield
 
