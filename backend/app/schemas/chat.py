@@ -1,8 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChatRequest(BaseModel):
+    conversation_id: str | None = Field(
+        default=None,
+        alias="conversationId",
+    )
+
     question: str
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
 
 
 class ChatSource(BaseModel):
@@ -13,5 +22,15 @@ class ChatSource(BaseModel):
 
 
 class ChatResponse(BaseModel):
+    conversation_id: str | None = Field(
+        default=None,
+        alias="conversationId",
+    )
+
     answer: str
+
     sources: list[ChatSource]
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )

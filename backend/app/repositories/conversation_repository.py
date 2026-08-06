@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -7,7 +9,10 @@ from app.models.conversation import Conversation
 class ConversationRepository:
     """Handles database operations for conversations."""
 
-    def __init__(self, db: Session):
+    def __init__(
+        self,
+        db: Session,
+    ):
         self.db = db
 
     def create(
@@ -20,7 +25,7 @@ class ConversationRepository:
         )
 
         self.db.add(conversation)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(conversation)
 
         return conversation
@@ -54,13 +59,15 @@ class ConversationRepository:
             self.db.scalars(stmt).all()
         )
 
-    def save(
+    def touch(
         self,
         conversation: Conversation,
     ) -> None:
 
-        self.db.add(conversation)
-        self.db.commit()
+        now = datetime.utcnow()
+
+        conversation.updated_at = now
+        conversation.last_message_at = now
 
     def delete(
         self,
@@ -68,4 +75,3 @@ class ConversationRepository:
     ) -> None:
 
         self.db.delete(conversation)
-        self.db.commit()

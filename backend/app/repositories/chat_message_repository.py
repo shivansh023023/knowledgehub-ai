@@ -7,7 +7,10 @@ from app.models.chat_message import ChatMessage
 class ChatMessageRepository:
     """Handles database operations for chat messages."""
 
-    def __init__(self, db: Session):
+    def __init__(
+        self,
+        db: Session,
+    ):
         self.db = db
 
     def create(
@@ -24,7 +27,7 @@ class ChatMessageRepository:
         )
 
         self.db.add(message)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(message)
 
         return message

@@ -8,7 +8,10 @@ from app.models.chat_message_source import (
 class ChatMessageSourceRepository:
     """Handles database operations for message sources."""
 
-    def __init__(self, db: Session):
+    def __init__(
+        self,
+        db: Session,
+    ):
         self.db = db
 
     def create_many(
@@ -29,4 +32,3 @@ class ChatMessageSourceRepository:
         ]
 
         self.db.add_all(objects)
-        self.db.commit()

@@ -5,9 +5,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.repositories.chunk_repository import ChunkRepository
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.services.rag_service import RAGService
+from app.services.chat_service import ChatService
 
 router = APIRouter(
     prefix="/chat",
@@ -23,13 +22,12 @@ def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
 ):
-    chunk_repository = ChunkRepository(db)
+    chat_service = ChatService(db)
 
-    rag_service = RAGService(chunk_repository)
-
-    return rag_service.chat(
-        question=request.question,
-    )
+    return chat_service.chat(
+    question=request.question,
+    conversation_id=request.conversation_id,
+)
 
 
 @router.post("/stream")
@@ -37,13 +35,12 @@ def stream_chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
 ):
-    chunk_repository = ChunkRepository(db)
+    chat_service = ChatService(db)
 
-    rag_service = RAGService(chunk_repository)
-
-    stream, sources = rag_service.stream_chat(
-        question=request.question,
-    )
+    stream, sources = chat_service.stream_chat(
+    question=request.question,
+    conversation_id=request.conversation_id,
+)
 
     if stream is None:
 
