@@ -1,4 +1,6 @@
 export interface ChatRequest {
+  conversationId: string | null;
+
   question: string;
 }
 
@@ -10,7 +12,10 @@ export interface ChatSource {
 }
 
 export interface ChatResponse {
+  conversationId: string | null;
+
   answer: string;
+
   sources: ChatSource[];
 }
 
