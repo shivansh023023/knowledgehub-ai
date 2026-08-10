@@ -11,30 +11,27 @@ import { useChatStore } from "@/stores/chatStore";
 
 export function useChat() {
   const {
+    conversationId,
     messages,
     addMessage,
     updateMessage,
     updateSources,
+    setConversationId,
     clearMessages,
   } = useChatStore();
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [error, setError] =
-    useState<string | null>(null);
-
-  const sendMessage = async (
-    question: string
-  ) => {
-    if (!question.trim()) return;
+  const sendMessage = async (question: string) => {
+    if (!question.trim() || loading) return;
 
     try {
       setLoading(true);
       setError(null);
 
       // ---------------------
-      // User message
+      // Add user message
       // ---------------------
 
       const userMessage: Message = {
@@ -46,11 +43,10 @@ export function useChat() {
       addMessage(userMessage);
 
       // ---------------------
-      // Empty assistant message
+      // Add empty assistant message
       // ---------------------
 
-      const assistantId =
-        crypto.randomUUID();
+      const assistantId = crypto.randomUUID();
 
       addMessage({
         id: assistantId,
@@ -59,115 +55,134 @@ export function useChat() {
         sources: [],
       });
 
+      // ---------------------
+      // Request body
+      // ---------------------
+
       const body: ChatRequest = {
+        conversationId,
         question,
       };
 
-      const response =
-        await fetch(
-          "http://localhost:8000/api/chat/stream",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify(body),
-          }
-        );
+      // ---------------------
+      // Call backend
+      // ---------------------
+
+      const response = await fetch(
+        "http://localhost:8000/api/chat/stream",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(
-          "Failed to connect."
-        );
+        throw new Error("Failed to connect to backend.");
       }
 
       if (!response.body) {
-        throw new Error(
-          "No response stream."
-        );
+        throw new Error("No response stream received.");
       }
 
-      const reader =
-        response.body.getReader();
+      // ---------------------
+      // Read stream
+      // ---------------------
 
-      const decoder =
-        new TextDecoder();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
 
       let buffer = "";
       let assistantText = "";
 
       while (true) {
-        const {
-          value,
-          done,
-        } = await reader.read();
+        const { value, done } = await reader.read();
 
         if (done) break;
 
-        buffer += decoder.decode(
-          value,
-          {
-            stream: true,
-          }
-        );
+        buffer += decoder.decode(value, {
+          stream: true,
+        });
 
         while (true) {
-          const newline =
-            buffer.indexOf("\n");
+          const newline = buffer.indexOf("\n");
 
-          if (newline === -1)
-            break;
+          if (newline === -1) break;
 
-          const line =
-            buffer
-              .slice(0, newline)
-              .trim();
+          const line = buffer
+            .slice(0, newline)
+            .trim();
 
-          buffer =
-            buffer.slice(
-              newline + 1
-            );
+          buffer = buffer.slice(newline + 1);
 
           if (!line) continue;
 
-          const event =
-            JSON.parse(line);
+          let event;
 
-          if (
-            event.type === "token"
-          ) {
-            assistantText +=
-              event.content;
+          try {
+            event = JSON.parse(line);
+          } catch {
+            continue;
+          }
+
+          // ---------------------
+          // Conversation ID
+          // ---------------------
+
+          if (event.type === "conversation") {
+            if (event.conversationId) {
+              setConversationId(event.conversationId);
+            }
+          }
+
+          // ---------------------
+          // Streaming token
+          // ---------------------
+
+          else if (event.type === "token") {
+            assistantText += event.content;
 
             updateMessage(
               assistantId,
               assistantText
             );
 
-            // Let React paint
-            await new Promise<void>(
-              (resolve) =>
-                requestAnimationFrame(
-                  () => resolve()
-                )
+            await new Promise<void>((resolve) =>
+              requestAnimationFrame(() => resolve())
             );
           }
 
-          else if (
-            event.type ===
-            "sources"
-          ) {
+          // ---------------------
+          // Complete answer
+          // ---------------------
+
+          else if (event.type === "answer") {
+            assistantText = event.content;
+
+            updateMessage(
+              assistantId,
+              assistantText
+            );
+          }
+
+          // ---------------------
+          // Sources
+          // ---------------------
+
+          else if (event.type === "sources") {
             updateSources(
               assistantId,
-              event.sources
+              event.sources ?? []
             );
           }
 
-          else if (
-            event.type ===
-            "done"
-          ) {
+          // ---------------------
+          // Finished
+          // ---------------------
+
+          else if (event.type === "done") {
             break;
           }
         }
@@ -176,7 +191,9 @@ export function useChat() {
       console.error(err);
 
       setError(
-        "Failed to get response."
+        err instanceof Error
+          ? err.message
+          : "Failed to get response."
       );
     } finally {
       setLoading(false);
@@ -184,6 +201,7 @@ export function useChat() {
   };
 
   return {
+    conversationId,
     messages,
     loading,
     error,

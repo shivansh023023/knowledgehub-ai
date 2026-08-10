@@ -3,11 +3,12 @@ import { create } from "zustand";
 import { Message } from "@/types/chat";
 
 interface ChatStore {
+  conversationId: string | null;
   messages: Message[];
 
-  addMessage: (
-    message: Message
-  ) => void;
+  setConversationId: (id: string | null) => void;
+
+  addMessage: (message: Message) => void;
 
   updateMessage: (
     id: string,
@@ -19,55 +20,62 @@ interface ChatStore {
     sources: Message["sources"]
   ) => void;
 
+  setMessages: (messages: Message[]) => void;
+
   clearMessages: () => void;
 }
 
-export const useChatStore =
-  create<ChatStore>((set) => ({
-    messages: [],
+export const useChatStore = create<ChatStore>((set) => ({
+  conversationId: null,
+  messages: [],
 
-    addMessage: (message) =>
-      set((state) => ({
-        messages: [
-          ...state.messages,
-          message,
-        ],
-      })),
+  setConversationId: (id) =>
+    set({
+      conversationId: id,
+    }),
 
-    updateMessage: (
-      id,
-      content
-    ) =>
-      set((state) => ({
-        messages: state.messages.map(
-          (message) =>
-            message.id === id
-              ? {
-                  ...message,
-                  content,
-                }
-              : message
-        ),
-      })),
+  addMessage: (message) =>
+    set((state) => ({
+      messages: [
+        ...state.messages,
+        message,
+      ],
+    })),
 
-    updateSources: (
-      id,
-      sources
-    ) =>
-      set((state) => ({
-        messages: state.messages.map(
-          (message) =>
-            message.id === id
-              ? {
-                  ...message,
-                  sources,
-                }
-              : message
-        ),
-      })),
+  updateMessage: (id, content) =>
+    set((state) => ({
+      messages: state.messages.map(
+        (message) =>
+          message.id === id
+            ? {
+                ...message,
+                content,
+              }
+            : message
+      ),
+    })),
 
-    clearMessages: () =>
-      set({
-        messages: [],
-      }),
-  }));
+  updateSources: (id, sources) =>
+    set((state) => ({
+      messages: state.messages.map(
+        (message) =>
+          message.id === id
+            ? {
+                ...message,
+                sources,
+              }
+            : message
+      ),
+    })),
+
+  setMessages: (messages) =>
+    set({
+      messages,
+    }),
+
+  clearMessages: () =>
+    set({
+      conversationId: null,
+      messages: [],
+    }),
+}));
