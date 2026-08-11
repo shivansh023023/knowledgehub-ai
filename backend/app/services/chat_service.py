@@ -25,6 +25,19 @@ class ChatService:
             ChunkRepository(db)
         )
 
+    def _set_title_if_new(
+        self,
+        conversation,
+        question: str,
+    ):
+        if conversation.title == "New Chat":
+            title = question.strip()
+
+            if len(title) > 50:
+                title = title[:50].rstrip() + "..."
+
+            conversation.title = title
+
     def _get_conversation_and_history(
         self,
         conversation_id: str | None,
@@ -73,6 +86,11 @@ class ChatService:
                 conversation_id=conversation.id,
                 role="user",
                 content=question,
+            )
+
+            self._set_title_if_new(
+                conversation,
+                question,
             )
 
             response = self.rag_service.chat(
@@ -124,6 +142,11 @@ class ChatService:
             conversation_id=conversation.id,
             role="user",
             content=question,
+        )
+
+        self._set_title_if_new(
+            conversation,
+            question,
         )
 
         stream, sources = self.rag_service.stream_chat(

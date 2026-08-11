@@ -17,6 +17,7 @@ export function useChat() {
     updateMessage,
     updateSources,
     setConversationId,
+    addConversation,
     clearMessages,
   } = useChatStore();
 
@@ -24,15 +25,17 @@ export function useChat() {
   const [error, setError] = useState<string | null>(null);
 
   const sendMessage = async (question: string) => {
-    if (!question.trim() || loading) return;
+    if (!question.trim() || loading) {
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
 
-      // ---------------------
+      // -------------------------
       // Add user message
-      // ---------------------
+      // -------------------------
 
       const userMessage: Message = {
         id: crypto.randomUUID(),
@@ -42,9 +45,9 @@ export function useChat() {
 
       addMessage(userMessage);
 
-      // ---------------------
+      // -------------------------
       // Add empty assistant message
-      // ---------------------
+      // -------------------------
 
       const assistantId = crypto.randomUUID();
 
@@ -55,18 +58,18 @@ export function useChat() {
         sources: [],
       });
 
-      // ---------------------
+      // -------------------------
       // Request body
-      // ---------------------
+      // -------------------------
 
       const body: ChatRequest = {
         conversationId,
         question,
       };
 
-      // ---------------------
+      // -------------------------
       // Call backend
-      // ---------------------
+      // -------------------------
 
       const response = await fetch(
         "http://localhost:8000/api/chat/stream",
@@ -91,9 +94,9 @@ export function useChat() {
         );
       }
 
-      // ---------------------
+      // -------------------------
       // Read stream
-      // ---------------------
+      // -------------------------
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -105,7 +108,9 @@ export function useChat() {
         const { value, done } =
           await reader.read();
 
-        if (done) break;
+        if (done) {
+          break;
+        }
 
         buffer += decoder.decode(value, {
           stream: true,
@@ -115,7 +120,9 @@ export function useChat() {
           const newline =
             buffer.indexOf("\n");
 
-          if (newline === -1) break;
+          if (newline === -1) {
+            break;
+          }
 
           const line = buffer
             .slice(0, newline)
@@ -125,7 +132,9 @@ export function useChat() {
             newline + 1
           );
 
-          if (!line) continue;
+          if (!line) {
+            continue;
+          }
 
           let event;
 
@@ -135,24 +144,42 @@ export function useChat() {
             continue;
           }
 
-          // ---------------------
-          // Conversation ID
-          // ---------------------
+          // -------------------------
+          // Conversation created
+          // -------------------------
 
           if (
             event.type ===
             "conversation"
           ) {
-            if (event.conversationId) {
+            const newConversationId =
+              event.conversationId;
+
+            if (newConversationId) {
+              // Set active conversation
               setConversationId(
-                event.conversationId
+                newConversationId
               );
+
+              // IMPORTANT:
+              // Add it directly to Zustand.
+              // No GET request needed.
+              addConversation({
+                id: newConversationId,
+                title: question.slice(0, 40),
+                created_at:
+                  new Date().toISOString(),
+                updated_at:
+                  new Date().toISOString(),
+                last_message_at:
+                  new Date().toISOString(),
+              });
             }
           }
 
-          // ---------------------
+          // -------------------------
           // Streaming token
-          // ---------------------
+          // -------------------------
 
           else if (
             event.type === "token"
@@ -173,9 +200,9 @@ export function useChat() {
             );
           }
 
-          // ---------------------
+          // -------------------------
           // Complete answer
-          // ---------------------
+          // -------------------------
 
           else if (
             event.type === "answer"
@@ -189,9 +216,9 @@ export function useChat() {
             );
           }
 
-          // ---------------------
+          // -------------------------
           // Sources
-          // ---------------------
+          // -------------------------
 
           else if (
             event.type === "sources"
@@ -202,9 +229,9 @@ export function useChat() {
             );
           }
 
-          // ---------------------
+          // -------------------------
           // Finished
-          // ---------------------
+          // -------------------------
 
           else if (
             event.type === "done"
