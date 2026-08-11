@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -25,10 +25,17 @@ def chat(
 ):
     chat_service = ChatService(db)
 
-    return chat_service.chat(
-        question=request.question,
-        conversation_id=request.conversation_id,
-    )
+    try:
+        return chat_service.chat(
+            question=request.question,
+            conversation_id=request.conversation_id,
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=str(e),
+        )
 
 
 @router.post("/stream")
@@ -38,45 +45,44 @@ def stream_chat(
 ):
     chat_service = ChatService(db)
 
-    (
-        stream,
-        sources,
-        conversation_id,
-        empty_answer,
-    ) = chat_service.stream_chat(
-        question=request.question,
-        conversation_id=request.conversation_id,
-    )
+    try:
+        conversation_id, stream, sources = (
+            chat_service.stream_chat(
+                question=request.question,
+                conversation_id=request.conversation_id,
+            )
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=str(e),
+        )
 
     if stream is None:
 
         def empty_stream():
-            yield json.dumps(
-                {
-                    "type": "token",
-                    "content": empty_answer,
-                }
-            ) + "\n"
+            yield json.dumps({
+                "type": "conversation",
+                "conversationId": conversation_id,
+            }) + "\n"
 
-            yield json.dumps(
-                {
-                    "type": "sources",
-                    "sources": [],
-                }
-            ) + "\n"
+            yield json.dumps({
+                "type": "answer",
+                "content": (
+                    "I couldn't find any relevant "
+                    "information in the uploaded documents."
+                ),
+            }) + "\n"
 
-            yield json.dumps(
-                {
-                    "type": "conversation",
-                    "conversationId": conversation_id,
-                }
-            ) + "\n"
+            yield json.dumps({
+                "type": "sources",
+                "sources": [],
+            }) + "\n"
 
-            yield json.dumps(
-                {
-                    "type": "done",
-                }
-            ) + "\n"
+            yield json.dumps({
+                "type": "done",
+            }) + "\n"
 
         return StreamingResponse(
             empty_stream(),
@@ -84,33 +90,25 @@ def stream_chat(
         )
 
     def generate():
+        yield json.dumps({
+            "type": "conversation",
+            "conversationId": conversation_id,
+        }) + "\n"
+
         for token in stream:
-            yield json.dumps(
-                {
-                    "type": "token",
-                    "content": token,
-                }
-            ) + "\n"
+            yield json.dumps({
+                "type": "token",
+                "content": token,
+            }) + "\n"
 
-        yield json.dumps(
-            {
-                "type": "sources",
-                "sources": sources,
-            }
-        ) + "\n"
+        yield json.dumps({
+            "type": "sources",
+            "sources": sources,
+        }) + "\n"
 
-        yield json.dumps(
-            {
-                "type": "conversation",
-                "conversationId": conversation_id,
-            }
-        ) + "\n"
-
-        yield json.dumps(
-            {
-                "type": "done",
-            }
-        ) + "\n"
+        yield json.dumps({
+            "type": "done",
+        }) + "\n"
 
     return StreamingResponse(
         generate(),
