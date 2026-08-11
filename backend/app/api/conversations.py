@@ -5,10 +5,33 @@ from app.db.database import get_db
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.chat_message_repository import ChatMessageRepository
 
+
 router = APIRouter(
     prefix="/conversations",
     tags=["Conversations"],
 )
+
+
+@router.post("")
+def create_conversation(
+    db: Session = Depends(get_db),
+):
+    repository = ConversationRepository(db)
+
+    conversation = repository.create(
+        title="New Chat"
+    )
+
+    db.commit()
+    db.refresh(conversation)
+
+    return {
+        "id": conversation.id,
+        "title": conversation.title,
+        "created_at": conversation.created_at,
+        "updated_at": conversation.updated_at,
+        "last_message_at": conversation.last_message_at,
+    }
 
 
 @router.get("")

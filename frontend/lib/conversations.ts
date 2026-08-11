@@ -10,19 +10,47 @@ export interface Conversation {
   last_message_at: string;
 }
 
-export interface ConversationDetails extends Conversation {
+export interface ConversationDetails
+  extends Conversation {
   messages: Message[];
 }
 
-export async function getConversations(): Promise<Conversation[]> {
-  const response = await fetch(`${API_URL}/conversations`);
+
+export async function createConversation(): Promise<Conversation> {
+  const response = await fetch(
+    `${API_URL}/conversations`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
   if (!response.ok) {
-    throw new Error("Failed to load conversations");
+    throw new Error(
+      "Failed to create conversation"
+    );
   }
 
   return response.json();
 }
+
+
+export async function getConversations(): Promise<Conversation[]> {
+  const response = await fetch(
+    `${API_URL}/conversations`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Failed to load conversations"
+    );
+  }
+
+  return response.json();
+}
+
 
 export async function getConversation(
   id: string
@@ -32,11 +60,14 @@ export async function getConversation(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to load conversation");
+    throw new Error(
+      "Failed to load conversation"
+    );
   }
 
   return response.json();
 }
+
 
 export async function deleteConversation(
   id: string
@@ -49,6 +80,8 @@ export async function deleteConversation(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to delete conversation");
+    throw new Error(
+      "Failed to delete conversation"
+    );
   }
 }

@@ -1,19 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, MessageSquare, Trash2 } from "lucide-react";
+import {
+  Plus,
+  MessageSquare,
+  Trash2,
+} from "lucide-react";
 
 import {
   Conversation,
   getConversations,
+  getConversation,
+  createConversation,
   deleteConversation,
 } from "@/lib/conversations";
 
 import { useChatStore } from "@/stores/chatStore";
 
+
 export default function Sidebar() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [conversations, setConversations] =
+    useState<Conversation[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
 
   const setConversationId = useChatStore(
     (state) => state.setConversationId
@@ -23,58 +33,59 @@ export default function Sidebar() {
     (state) => state.setMessages
   );
 
+
   const loadConversations = async () => {
     try {
       const data = await getConversations();
+
       setConversations(data);
     } catch (error) {
-      console.error("Failed to load conversations:", error);
+      console.error(
+        "Failed to load conversations:",
+        error
+      );
     } finally {
       setLoading(false);
     }
   };
 
+
   useEffect(() => {
     loadConversations();
   }, []);
 
-  const handleDelete = async (id: string) => {
+
+  const handleNewChat = async () => {
     try {
-      await deleteConversation(id);
+      const conversation =
+        await createConversation();
 
-      setConversations((prev) =>
-        prev.filter(
-          (conversation) => conversation.id !== id
-        )
-      );
+      setConversations((prev) => [
+        conversation,
+        ...prev,
+      ]);
 
-      const currentId = useChatStore.getState().conversationId;
-
-      if (currentId === id) {
-        setConversationId(null);
-        setMessages([]);
-      }
+      setConversationId(conversation.id);
+      setMessages([]);
     } catch (error) {
-      console.error("Failed to delete conversation:", error);
+      console.error(
+        "Failed to create conversation:",
+        error
+      );
     }
   };
 
-  const handleOpenConversation = async (id: string) => {
+
+  const handleOpenConversation = async (
+    id: string
+  ) => {
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/conversations/${id}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to load conversation");
-      }
-
-      const conversation = await response.json();
+      const conversation =
+        await getConversation(id);
 
       setConversationId(conversation.id);
-      setMessages(conversation.messages);
 
-      window.location.href = "/app";
+      setMessages(conversation.messages);
     } catch (error) {
       console.error(
         "Failed to open conversation:",
@@ -83,14 +94,40 @@ export default function Sidebar() {
     }
   };
 
-  const handleNewChat = () => {
-    setConversationId(null);
-    setMessages([]);
-    window.location.href = "/app";
+
+  const handleDelete = async (
+    id: string
+  ) => {
+    try {
+      await deleteConversation(id);
+
+      setConversations((prev) =>
+        prev.filter(
+          (conversation) =>
+            conversation.id !== id
+        )
+      );
+
+      const currentId =
+        useChatStore.getState().conversationId;
+
+      if (currentId === id) {
+        setConversationId(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to delete conversation:",
+        error
+      );
+    }
   };
+
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-zinc-800 bg-black text-white">
+
+      {/* New Chat */}
       <div className="p-4">
         <button
           onClick={handleNewChat}
@@ -101,10 +138,14 @@ export default function Sidebar() {
         </button>
       </div>
 
+
+      {/* Conversations */}
       <div className="flex-1 overflow-y-auto px-3">
+
         <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
           Conversations
         </h2>
+
 
         {loading ? (
           <p className="px-2 text-sm text-zinc-500">
@@ -116,34 +157,47 @@ export default function Sidebar() {
           </p>
         ) : (
           <div className="space-y-1">
-            {conversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className="group flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-zinc-900"
-              >
-                <MessageSquare className="h-4 w-4 shrink-0 text-zinc-500" />
 
-                <button
-                  onClick={() =>
-                    handleOpenConversation(conversation.id)
-                  }
-                  className="min-w-0 flex-1 truncate text-left text-sm text-zinc-300"
+            {conversations.map(
+              (conversation) => (
+                <div
+                  key={conversation.id}
+                  className="group flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-zinc-900"
                 >
-                  {conversation.title}
-                </button>
 
-                <button
-                  onClick={() =>
-                    handleDelete(conversation.id)
-                  }
-                  className="hidden text-zinc-500 hover:text-red-400 group-hover:block"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+                  <MessageSquare className="h-4 w-4 shrink-0 text-zinc-500" />
+
+
+                  <button
+                    onClick={() =>
+                      handleOpenConversation(
+                        conversation.id
+                      )
+                    }
+                    className="min-w-0 flex-1 truncate text-left text-sm text-zinc-300"
+                  >
+                    {conversation.title}
+                  </button>
+
+
+                  <button
+                    onClick={() =>
+                      handleDelete(
+                        conversation.id
+                      )
+                    }
+                    className="hidden text-zinc-500 hover:text-red-400 group-hover:block"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+
+                </div>
+              )
+            )}
+
           </div>
         )}
+
       </div>
     </aside>
   );
