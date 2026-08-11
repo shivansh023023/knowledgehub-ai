@@ -2,17 +2,27 @@
 
 import { useDocuments } from "../providers/DocumentProvider";
 
-export default function KnowledgeTable() {
+interface KnowledgeTableProps {
+  search?: string;
+}
+
+export default function KnowledgeTable({
+  search = "",
+}: KnowledgeTableProps) {
   const { documents } = useDocuments();
 
+  const filteredDocuments = documents.filter((document) =>
+    document.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="text-white p-8">
-      <h1 className="text-3xl mb-6">Knowledge Debug</h1>
+    <div className="p-8 text-white">
+      <h1 className="mb-6 text-3xl">Knowledge Debug</h1>
 
-      <p>Total documents: {documents.length}</p>
+      <p>Total documents: {filteredDocuments.length}</p>
 
-      <pre className="mt-6 rounded bg-zinc-900 p-4 text-sm overflow-auto">
-        {JSON.stringify(documents, null, 2)}
+      <pre className="mt-6 overflow-auto rounded bg-zinc-900 p-4 text-sm">
+        {JSON.stringify(filteredDocuments, null, 2)}
       </pre>
     </div>
   );

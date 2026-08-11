@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
 import { Message } from "@/types/chat";
-
-import ChatMessage from "./ChatMessage";
+import MessageBubble from "@/components/chat/MessageBubble";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -28,7 +26,7 @@ export default function ChatMessages({
     return (
       <div className="flex h-full items-center justify-center">
         <div className="max-w-md text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 border border-zinc-800">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900">
             🤖
           </div>
 
@@ -52,16 +50,16 @@ export default function ChatMessages({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {messages.map((message) => (
-        <ChatMessage
+        <MessageBubble
           key={message.id}
           message={message}
         />
       ))}
 
       {loading && (
-        <div className="flex items-center gap-3 pl-2">
+        <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-300">
             AI
           </div>
