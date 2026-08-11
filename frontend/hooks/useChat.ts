@@ -80,11 +80,15 @@ export function useChat() {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to connect to backend.");
+        throw new Error(
+          "Failed to connect to backend."
+        );
       }
 
       if (!response.body) {
-        throw new Error("No response stream received.");
+        throw new Error(
+          "No response stream received."
+        );
       }
 
       // ---------------------
@@ -98,7 +102,8 @@ export function useChat() {
       let assistantText = "";
 
       while (true) {
-        const { value, done } = await reader.read();
+        const { value, done } =
+          await reader.read();
 
         if (done) break;
 
@@ -107,7 +112,8 @@ export function useChat() {
         });
 
         while (true) {
-          const newline = buffer.indexOf("\n");
+          const newline =
+            buffer.indexOf("\n");
 
           if (newline === -1) break;
 
@@ -115,7 +121,9 @@ export function useChat() {
             .slice(0, newline)
             .trim();
 
-          buffer = buffer.slice(newline + 1);
+          buffer = buffer.slice(
+            newline + 1
+          );
 
           if (!line) continue;
 
@@ -131,9 +139,14 @@ export function useChat() {
           // Conversation ID
           // ---------------------
 
-          if (event.type === "conversation") {
+          if (
+            event.type ===
+            "conversation"
+          ) {
             if (event.conversationId) {
-              setConversationId(event.conversationId);
+              setConversationId(
+                event.conversationId
+              );
             }
           }
 
@@ -141,16 +154,22 @@ export function useChat() {
           // Streaming token
           // ---------------------
 
-          else if (event.type === "token") {
-            assistantText += event.content;
+          else if (
+            event.type === "token"
+          ) {
+            assistantText +=
+              event.content ?? "";
 
             updateMessage(
               assistantId,
               assistantText
             );
 
-            await new Promise<void>((resolve) =>
-              requestAnimationFrame(() => resolve())
+            await new Promise<void>(
+              (resolve) =>
+                requestAnimationFrame(
+                  () => resolve()
+                )
             );
           }
 
@@ -158,8 +177,11 @@ export function useChat() {
           // Complete answer
           // ---------------------
 
-          else if (event.type === "answer") {
-            assistantText = event.content;
+          else if (
+            event.type === "answer"
+          ) {
+            assistantText =
+              event.content ?? "";
 
             updateMessage(
               assistantId,
@@ -171,7 +193,9 @@ export function useChat() {
           // Sources
           // ---------------------
 
-          else if (event.type === "sources") {
+          else if (
+            event.type === "sources"
+          ) {
             updateSources(
               assistantId,
               event.sources ?? []
@@ -182,7 +206,9 @@ export function useChat() {
           // Finished
           // ---------------------
 
-          else if (event.type === "done") {
+          else if (
+            event.type === "done"
+          ) {
             break;
           }
         }

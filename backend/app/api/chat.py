@@ -8,6 +8,7 @@ from app.db.database import get_db
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.chat_service import ChatService
 
+
 router = APIRouter(
     prefix="/chat",
     tags=["Chat"],
@@ -25,9 +26,9 @@ def chat(
     chat_service = ChatService(db)
 
     return chat_service.chat(
-    question=request.question,
-    conversation_id=request.conversation_id,
-)
+        question=request.question,
+        conversation_id=request.conversation_id,
+    )
 
 
 @router.post("/stream")
@@ -37,21 +38,23 @@ def stream_chat(
 ):
     chat_service = ChatService(db)
 
-    stream, sources = chat_service.stream_chat(
-    question=request.question,
-    conversation_id=request.conversation_id,
-)
+    (
+        stream,
+        sources,
+        conversation_id,
+        empty_answer,
+    ) = chat_service.stream_chat(
+        question=request.question,
+        conversation_id=request.conversation_id,
+    )
 
     if stream is None:
 
         def empty_stream():
             yield json.dumps(
                 {
-                    "type": "answer",
-                    "content": (
-                        "I couldn't find any relevant "
-                        "information in the uploaded documents."
-                    ),
+                    "type": "token",
+                    "content": empty_answer,
                 }
             ) + "\n"
 
@@ -59,6 +62,13 @@ def stream_chat(
                 {
                     "type": "sources",
                     "sources": [],
+                }
+            ) + "\n"
+
+            yield json.dumps(
+                {
+                    "type": "conversation",
+                    "conversationId": conversation_id,
                 }
             ) + "\n"
 
@@ -86,6 +96,13 @@ def stream_chat(
             {
                 "type": "sources",
                 "sources": sources,
+            }
+        ) + "\n"
+
+        yield json.dumps(
+            {
+                "type": "conversation",
+                "conversationId": conversation_id,
             }
         ) + "\n"
 

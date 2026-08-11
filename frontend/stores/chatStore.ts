@@ -1,5 +1,4 @@
 import { create } from "zustand";
-
 import { Message } from "@/types/chat";
 
 interface ChatStore {
@@ -7,6 +6,11 @@ interface ChatStore {
   messages: Message[];
 
   setConversationId: (id: string | null) => void;
+  setMessages: (messages: Message[]) => void;
+  loadConversation: (
+    id: string,
+    messages: Message[]
+  ) => void;
 
   addMessage: (message: Message) => void;
 
@@ -20,8 +24,6 @@ interface ChatStore {
     sources: Message["sources"]
   ) => void;
 
-  setMessages: (messages: Message[]) => void;
-
   clearMessages: () => void;
 }
 
@@ -34,44 +36,45 @@ export const useChatStore = create<ChatStore>((set) => ({
       conversationId: id,
     }),
 
+  setMessages: (messages) =>
+    set({
+      messages,
+    }),
+
+  loadConversation: (id, messages) =>
+    set({
+      conversationId: id,
+      messages,
+    }),
+
   addMessage: (message) =>
     set((state) => ({
-      messages: [
-        ...state.messages,
-        message,
-      ],
+      messages: [...state.messages, message],
     })),
 
   updateMessage: (id, content) =>
     set((state) => ({
-      messages: state.messages.map(
-        (message) =>
-          message.id === id
-            ? {
-                ...message,
-                content,
-              }
-            : message
+      messages: state.messages.map((message) =>
+        message.id === id
+          ? {
+              ...message,
+              content,
+            }
+          : message
       ),
     })),
 
   updateSources: (id, sources) =>
     set((state) => ({
-      messages: state.messages.map(
-        (message) =>
-          message.id === id
-            ? {
-                ...message,
-                sources,
-              }
-            : message
+      messages: state.messages.map((message) =>
+        message.id === id
+          ? {
+              ...message,
+              sources,
+            }
+          : message
       ),
     })),
-
-  setMessages: (messages) =>
-    set({
-      messages,
-    }),
 
   clearMessages: () =>
     set({
