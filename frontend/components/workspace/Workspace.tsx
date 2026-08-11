@@ -10,7 +10,7 @@ export default function Workspace() {
   return (
     <div
       ref={containerRef}
-      className="relative h-screen w-full overflow-hidden px-3 py-3 lg:px-4 lg:py-4"
+      className="relative h-full w-full overflow-hidden px-3 py-3 lg:px-4 lg:py-4"
     >
       <MagicBento
   cards={workspaceCards}
