@@ -59,6 +59,14 @@ class ConversationRepository:
             self.db.scalars(stmt).all()
         )
 
+    def update_title(
+        self,
+        conversation: Conversation,
+        title: str,
+    ) -> None:
+
+        conversation.title = title
+
     def touch(
         self,
         conversation: Conversation,

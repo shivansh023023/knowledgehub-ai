@@ -110,6 +110,8 @@ class ChatService:
                 assistant_message.id,
                 response["sources"],
             )
+            if conversation.title == "New Chat":
+                conversation.title = question[:50]
 
             self.conversation_repository.touch(
                 conversation
@@ -185,6 +187,8 @@ class ChatService:
                     assistant_message.id,
                     sources,
                 )
+                if conversation.title == "New Chat":
+                    conversation.title = question[:50]
 
                 self.conversation_repository.touch(
                     conversation
