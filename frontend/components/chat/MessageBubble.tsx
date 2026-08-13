@@ -1,6 +1,7 @@
 "use client";
 
 import { Message } from "@/types/chat";
+import MarkdownMessage from "@/components/workspace/cards/chat/MarkdownMessage";
 
 interface MessageBubbleProps {
   message: Message;
@@ -28,28 +29,39 @@ export default function MessageBubble({
           {isUser ? "You" : "KnowledgeHub AI"}
         </div>
 
-        <div className="whitespace-pre-wrap text-sm leading-6">
-          {message.content || "..."}
+        <div className="text-sm leading-6">
+          {isUser ? (
+            <div className="whitespace-pre-wrap">
+              {message.content || "..."}
+            </div>
+          ) : (
+            <MarkdownMessage
+              content={message.content || "..."}
+            />
+          )}
         </div>
 
-        {message.sources && message.sources.length > 0 && (
-          <div className="mt-4 border-t border-zinc-700 pt-3">
-            <p className="mb-2 text-xs font-semibold text-zinc-400">
-              Sources
-            </p>
+        {message.sources &&
+          message.sources.length > 0 && (
+            <div className="mt-4 border-t border-zinc-700 pt-3">
+              <p className="mb-2 text-xs font-semibold text-zinc-400">
+                Sources
+              </p>
 
-            <div className="space-y-1">
-              {message.sources.map((source, index) => (
-                <div
-                  key={`${source.document_id}-${index}`}
-                  className="text-xs text-zinc-500"
-                >
-                  📄 {source.document_name}
-                </div>
-              ))}
+              <div className="space-y-1">
+                {message.sources.map(
+                  (source, index) => (
+                    <div
+                      key={`${source.document_id}-${index}`}
+                      className="text-xs text-zinc-500"
+                    >
+                      📄 {source.document_name}
+                    </div>
+                  )
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
     </div>
   );
