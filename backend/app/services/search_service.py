@@ -7,6 +7,8 @@ from app.vectorstore.qdrant_repository import QdrantRepository
 class SearchService:
     """Handles semantic search over document chunks."""
 
+    SIMILARITY_THRESHOLD = 0.60
+
     def __init__(
         self,
         chunk_repository: ChunkRepository,
@@ -37,16 +39,28 @@ class SearchService:
         if not vector_results:
             return []
 
-        # Step 3: Extract chunk IDs
+        # Step 3: Remove weak semantic matches
+        vector_results = [
+            result
+            for result in vector_results
+            if float(result.score) >= self.SIMILARITY_THRESHOLD
+        ]
+
+        if not vector_results:
+            return []
+
+        # Step 4: Extract chunk IDs
         chunk_ids = [
             str(result.id)
             for result in vector_results
         ]
 
-        # Step 4: Fetch chunks from SQLite
-        chunks = self.chunk_repository.get_chunks_by_ids(chunk_ids)
+        # Step 5: Fetch chunks from SQLite
+        chunks = self.chunk_repository.get_chunks_by_ids(
+            chunk_ids
+        )
 
-        # Step 5: Fetch corresponding documents
+        # Step 6: Fetch corresponding documents
         document_ids = list(
             {
                 str(chunk.document_id)
@@ -63,13 +77,13 @@ class SearchService:
             for document in documents
         }
 
-        # Step 6: Create chunk lookup
+        # Step 7: Create chunk lookup
         chunk_lookup = {
             str(chunk.id): chunk
             for chunk in chunks
         }
 
-        # Step 7: Preserve Qdrant ranking
+        # Step 8: Preserve Qdrant ranking
         results = []
 
         for result in vector_results:
@@ -78,7 +92,12 @@ class SearchService:
             if chunk is None:
                 continue
 
-            document = document_lookup[str(chunk.document_id)]
+            document = document_lookup.get(
+                str(chunk.document_id)
+            )
+
+            if document is None:
+                continue
 
             results.append(
                 {
