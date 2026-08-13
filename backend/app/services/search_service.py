@@ -2,10 +2,11 @@ from app.repositories.chunk_repository import ChunkRepository
 from app.repositories.document_repository import DocumentRepository
 from app.services.embedding_service import EmbeddingService
 from app.vectorstore.qdrant_repository import QdrantRepository
+from app.reranking.cross_encoder import CrossEncoderReranker
 
 
 class SearchService:
-    """Handles semantic search over document chunks."""
+    """Handles semantic search and reranking over document chunks."""
 
     SIMILARITY_THRESHOLD = 0.60
 
@@ -19,6 +20,7 @@ class SearchService:
         )
         self.embedding_service = EmbeddingService()
         self.qdrant_repository = QdrantRepository()
+        self.reranker = CrossEncoderReranker()
 
     def search(
         self,
@@ -26,13 +28,16 @@ class SearchService:
         top_k: int = 5,
         document_id: str | None = None,
     ):
+        # Retrieve more candidates before reranking.
+        retrieval_k = max(top_k * 2, 10)
+
         # Step 1: Embed the user's query
         query_embedding = self.embedding_service.embed_query(query)
 
         # Step 2: Search Qdrant
         vector_results = self.qdrant_repository.search(
             query_embedding=query_embedding,
-            top_k=top_k,
+            top_k=retrieval_k,
             document_id=document_id,
         )
 
@@ -83,7 +88,7 @@ class SearchService:
             for chunk in chunks
         }
 
-        # Step 8: Preserve Qdrant ranking
+        # Step 8: Build results
         results = []
 
         for result in vector_results:
@@ -110,4 +115,9 @@ class SearchService:
                 }
             )
 
-        return results
+        # Step 9: Rerank candidates using CrossEncoder
+        return self.reranker.rerank(
+            query=query,
+            results=results,
+            top_k=top_k,
+        )

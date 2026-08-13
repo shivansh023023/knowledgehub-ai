@@ -2,6 +2,7 @@
 
 import { Message } from "@/types/chat";
 import MarkdownMessage from "@/components/workspace/cards/chat/MarkdownMessage";
+import ChatSources from "@/components/workspace/cards/chat/ChatSources";
 
 interface MessageBubbleProps {
   message: Message;
@@ -41,26 +42,12 @@ export default function MessageBubble({
           )}
         </div>
 
-        {message.sources &&
+        {!isUser &&
+          message.sources &&
           message.sources.length > 0 && (
-            <div className="mt-4 border-t border-zinc-700 pt-3">
-              <p className="mb-2 text-xs font-semibold text-zinc-400">
-                Sources
-              </p>
-
-              <div className="space-y-1">
-                {message.sources.map(
-                  (source, index) => (
-                    <div
-                      key={`${source.document_id}-${index}`}
-                      className="text-xs text-zinc-500"
-                    >
-                      📄 {source.document_name}
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
+            <ChatSources
+              sources={message.sources}
+            />
           )}
       </div>
     </div>

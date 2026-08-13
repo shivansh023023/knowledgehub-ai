@@ -1,3 +1,4 @@
+
 from collections.abc import Generator
 
 from app.prompts.rag_prompt import build_rag_prompt
@@ -7,7 +8,7 @@ from app.services.search_service import SearchService
 
 
 class RAGService:
-    """Coordinates retrieval and LLM generation."""
+    """Coordinates retrieval, reranking, and LLM generation."""
 
     def __init__(
         self,
@@ -16,8 +17,29 @@ class RAGService:
         self.search_service = SearchService(
             chunk_repository
         )
-
         self.llm_service = LLMService()
+
+    def _build_retrieval_query(
+        self,
+        question: str,
+        history: str = "",
+    ) -> str:
+        """
+        Build a retrieval query using recent conversation
+        context so follow-up questions can retrieve the
+        correct document chunks.
+        """
+
+        if not history.strip():
+            return question
+
+        return f"""
+Previous conversation:
+{history}
+
+Current question:
+{question}
+""".strip()
 
     def _prepare_prompt(
         self,
@@ -25,8 +47,14 @@ class RAGService:
         history: str = "",
     ) -> tuple[str | None, list]:
 
+        retrieval_query = self._build_retrieval_query(
+            question,
+            history,
+        )
+
         search_results = self.search_service.search(
-            question
+            query=retrieval_query,
+            top_k=5,
         )
 
         if not search_results:
@@ -72,13 +100,12 @@ Chunk: {result['chunk_index']}
             sources.append(
                 {
                     "document_id": result["document_id"],
-                    "document_name": result[
-                        "document_name"
-                    ],
-                    "chunk_index": result[
-                        "chunk_index"
-                    ],
+                    "document_name": result["document_name"],
+                    "chunk_index": result["chunk_index"],
                     "score": result["score"],
+                    "rerank_score": result.get(
+                        "rerank_score"
+                    ),
                 }
             )
 
@@ -100,9 +127,8 @@ Chunk: {result['chunk_index']}
         if prompt is None:
             return {
                 "answer": (
-                    "I couldn't find any relevant "
-                    "information in the uploaded "
-                    "documents."
+                    "I couldn't find that information "
+                    "in the provided documents."
                 ),
                 "sources": [],
             }

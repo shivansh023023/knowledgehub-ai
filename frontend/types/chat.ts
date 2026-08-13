@@ -9,6 +9,7 @@ export interface ChatSource {
   document_name: string;
   chunk_index: number;
   score: number;
+  rerank_score?: number;
 }
 
 export interface ChatResponse {
