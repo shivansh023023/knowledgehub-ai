@@ -103,6 +103,7 @@ export function useChat() {
 
       let buffer = "";
       let assistantText = "";
+      let newConversationId: string | null = null;
 
       while (true) {
         const { value, done } =
@@ -149,24 +150,23 @@ export function useChat() {
           // -------------------------
 
           if (
-            event.type ===
-            "conversation"
+            event.type === "conversation"
           ) {
-            const newConversationId =
+            newConversationId =
               event.conversationId;
 
             if (newConversationId) {
-              // Set active conversation
               setConversationId(
                 newConversationId
               );
 
-              // IMPORTANT:
-              // Add it directly to Zustand.
-              // No GET request needed.
+              // Add temporary conversation
+              // to sidebar immediately.
               addConversation({
                 id: newConversationId,
-                title: question.slice(0, 40),
+                title: question
+                  .trim()
+                  .slice(0, 50),
                 created_at:
                   new Date().toISOString(),
                 updated_at:
@@ -240,6 +240,15 @@ export function useChat() {
           }
         }
       }
+
+      // -------------------------
+      // Stream finished
+      // -------------------------
+      // Do NOT call getConversation()
+      // here. Backend persistence is
+      // handled by the stream itself.
+      // -------------------------
+
     } catch (err) {
       console.error(err);
 
