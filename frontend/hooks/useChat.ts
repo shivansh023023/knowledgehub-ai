@@ -18,6 +18,7 @@ export function useChat() {
     updateSources,
     setConversationId,
     addConversation,
+    touchConversation,
     clearMessages,
   } = useChatStore();
 
@@ -160,8 +161,8 @@ export function useChat() {
                 newConversationId
               );
 
-              // Add temporary conversation
-              // to sidebar immediately.
+              // Add conversation to sidebar
+              // immediately.
               addConversation({
                 id: newConversationId,
                 title: question
@@ -244,11 +245,16 @@ export function useChat() {
       // -------------------------
       // Stream finished
       // -------------------------
-      // Do NOT call getConversation()
-      // here. Backend persistence is
-      // handled by the stream itself.
+      // Move the conversation to
+      // the top of the sidebar.
       // -------------------------
 
+      if (newConversationId) {
+        touchConversation(
+          newConversationId,
+          question.trim().slice(0, 50)
+        );
+      }
     } catch (err) {
       console.error(err);
 

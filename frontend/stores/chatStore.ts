@@ -28,12 +28,17 @@ interface ChatStore {
     conversation: Conversation
   ) => void;
 
+  updateConversation: (
+    conversation: Conversation
+  ) => void;
+
   removeConversation: (
     id: string
   ) => void;
 
-  updateConversation: (
-    conversation: Conversation
+  touchConversation: (
+    id: string,
+    title?: string
   ) => void;
 
   // Chat messages
@@ -129,15 +134,6 @@ export const useChatStore = create<ChatStore>(
         };
       }),
 
-    removeConversation: (id) =>
-      set((state) => ({
-        conversations:
-          state.conversations.filter(
-            (conversation) =>
-              conversation.id !== id
-          ),
-      })),
-
     updateConversation: (
       conversation
     ) =>
@@ -150,6 +146,55 @@ export const useChatStore = create<ChatStore>(
                 : item
           ),
       })),
+
+    removeConversation: (id) =>
+      set((state) => ({
+        conversations:
+          state.conversations.filter(
+            (conversation) =>
+              conversation.id !== id
+          ),
+      })),
+
+    // -------------------------
+    // Move conversation to top
+    // -------------------------
+
+    touchConversation: (
+      id,
+      title
+    ) =>
+      set((state) => {
+        const conversation =
+          state.conversations.find(
+            (item) => item.id === id
+          );
+
+        if (!conversation) {
+          return state;
+        }
+
+        const now =
+          new Date().toISOString();
+
+        const updatedConversation = {
+          ...conversation,
+          ...(title
+            ? { title }
+            : {}),
+          updated_at: now,
+          last_message_at: now,
+        };
+
+        return {
+          conversations: [
+            updatedConversation,
+            ...state.conversations.filter(
+              (item) => item.id !== id
+            ),
+          ],
+        };
+      }),
 
     // -------------------------
     // Chat messages
