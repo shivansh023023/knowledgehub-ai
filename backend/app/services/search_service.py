@@ -6,66 +6,75 @@ from app.reranking.cross_encoder import CrossEncoderReranker
 
 
 class SearchService:
-    """Handles semantic search and reranking over document chunks."""
+    """Handles hybrid semantic + keyword search with reranking."""
 
     SIMILARITY_THRESHOLD = 0.60
+    RRF_K = 60
 
     def __init__(
         self,
         chunk_repository: ChunkRepository,
     ):
         self.chunk_repository = chunk_repository
+
         self.document_repository = DocumentRepository(
             chunk_repository.db
         )
+
         self.embedding_service = EmbeddingService()
         self.qdrant_repository = QdrantRepository()
         self.reranker = CrossEncoderReranker()
 
-    def search(
+    def _rrf_score(self, rank: int) -> float:
+        return 1.0 / (self.RRF_K + rank)
+
+    def _semantic_search(
         self,
         query: str,
-        top_k: int = 5,
+        top_k: int,
         document_id: str | None = None,
-    ):
-        # Retrieve more candidates before reranking.
-        retrieval_k = max(top_k * 2, 10)
+    ) -> list:
 
-        # Step 1: Embed the user's query
-        query_embedding = self.embedding_service.embed_query(query)
+        query_embedding = (
+            self.embedding_service.embed_query(query)
+        )
 
-        # Step 2: Search Qdrant
-        vector_results = self.qdrant_repository.search(
-            query_embedding=query_embedding,
-            top_k=retrieval_k,
-            document_id=document_id,
+        vector_results = (
+            self.qdrant_repository.search(
+                query_embedding=query_embedding,
+                top_k=top_k,
+                document_id=document_id,
+            )
         )
 
         if not vector_results:
             return []
 
-        # Step 3: Remove weak semantic matches
         vector_results = [
             result
             for result in vector_results
-            if float(result.score) >= self.SIMILARITY_THRESHOLD
+            if float(result.score)
+            >= self.SIMILARITY_THRESHOLD
         ]
 
         if not vector_results:
             return []
 
-        # Step 4: Extract chunk IDs
         chunk_ids = [
             str(result.id)
             for result in vector_results
         ]
 
-        # Step 5: Fetch chunks from SQLite
-        chunks = self.chunk_repository.get_chunks_by_ids(
-            chunk_ids
+        chunks = (
+            self.chunk_repository
+            .get_chunks_by_ids(chunk_ids)
         )
 
-        # Step 6: Fetch corresponding documents
+        chunk_lookup = {
+            str(chunk.id): chunk
+            for chunk in chunks
+        }
+
         document_ids = list(
             {
                 str(chunk.document_id)
@@ -73,8 +82,9 @@ class SearchService:
             }
         )
 
-        documents = self.document_repository.get_documents_by_ids(
-            document_ids
+        documents = (
+            self.document_repository
+            .get_documents_by_ids(document_ids)
         )
 
         document_lookup = {
@@ -82,17 +92,12 @@ class SearchService:
             for document in documents
         }
 
-        # Step 7: Create chunk lookup
-        chunk_lookup = {
-            str(chunk.id): chunk
-            for chunk in chunks
-        }
-
-        # Step 8: Build results
         results = []
 
         for result in vector_results:
-            chunk = chunk_lookup.get(str(result.id))
+            chunk = chunk_lookup.get(
+                str(result.id)
+            )
 
             if chunk is None:
                 continue
@@ -115,9 +120,165 @@ class SearchService:
                 }
             )
 
-        # Step 9: Rerank candidates using CrossEncoder
+        return results
+
+    def _keyword_results_to_dicts(
+        self,
+        chunks: list,
+    ) -> list:
+
+        if not chunks:
+            return []
+
+        document_ids = list(
+            {
+                str(chunk.document_id)
+                for chunk in chunks
+            }
+        )
+
+        documents = (
+            self.document_repository
+            .get_documents_by_ids(document_ids)
+        )
+
+        document_lookup = {
+            str(document.id): document
+            for document in documents
+        }
+
+        results = []
+
+        for chunk in chunks:
+            document = document_lookup.get(
+                str(chunk.document_id)
+            )
+
+            if document is None:
+                continue
+
+            results.append(
+                {
+                    "chunk_id": str(chunk.id),
+                    "document_id": str(chunk.document_id),
+                    "document_name": document.original_filename,
+                    "chunk_index": chunk.chunk_index,
+                    "content": chunk.content,
+                    "score": 0.0,
+                }
+            )
+
+        return results
+
+    def _merge_results(
+        self,
+        semantic_results: list,
+        keyword_results: list,
+    ) -> list:
+
+        merged = {}
+
+        # Semantic ranking
+        for rank, result in enumerate(
+            semantic_results,
+            start=1,
+        ):
+            chunk_id = result["chunk_id"]
+
+            if chunk_id not in merged:
+                merged[chunk_id] = {
+                    **result,
+                    "rrf_score": 0.0,
+                }
+
+            merged[chunk_id]["rrf_score"] += (
+                self._rrf_score(rank)
+            )
+
+        # Keyword ranking
+        for rank, result in enumerate(
+            keyword_results,
+            start=1,
+        ):
+            chunk_id = result["chunk_id"]
+
+            if chunk_id not in merged:
+                merged[chunk_id] = {
+                    **result,
+                    "rrf_score": 0.0,
+                }
+
+            merged[chunk_id]["rrf_score"] += (
+                self._rrf_score(rank)
+            )
+
+        results = list(merged.values())
+
+        results.sort(
+            key=lambda result: result["rrf_score"],
+            reverse=True,
+        )
+
+        return results
+
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        document_id: str | None = None,
+    ):
+
+        retrieval_k = max(
+            top_k * 2,
+            10,
+        )
+
+        # -------------------------
+        # 1. Semantic search
+        # -------------------------
+
+        semantic_results = self._semantic_search(
+            query=query,
+            top_k=retrieval_k,
+            document_id=document_id,
+        )
+
+        # -------------------------
+        # 2. Keyword search
+        # -------------------------
+
+        keyword_chunks = (
+            self.chunk_repository.keyword_search(
+                query=query,
+                top_k=retrieval_k,
+                document_id=document_id,
+            )
+        )
+
+        keyword_results = (
+            self._keyword_results_to_dicts(
+                keyword_chunks
+            )
+        )
+
+        # -------------------------
+        # 3. RRF fusion
+        # -------------------------
+
+        hybrid_results = self._merge_results(
+            semantic_results=semantic_results,
+            keyword_results=keyword_results,
+        )
+
+        if not hybrid_results:
+            return []
+
+        # -------------------------
+        # 4. CrossEncoder reranking
+        # -------------------------
+
         return self.reranker.rerank(
             query=query,
-            results=results,
+            results=hybrid_results[:retrieval_k],
             top_k=top_k,
         )
