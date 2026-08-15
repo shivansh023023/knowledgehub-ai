@@ -1,10 +1,10 @@
-
 from collections.abc import Generator
 
 from app.prompts.rag_prompt import build_rag_prompt
 from app.repositories.chunk_repository import ChunkRepository
 from app.services.llm_service import LLMService
 from app.services.search_service import SearchService
+from app.services.query_rewrite_service import QueryRewriteService
 
 
 class RAGService:
@@ -17,29 +17,12 @@ class RAGService:
         self.search_service = SearchService(
             chunk_repository
         )
+
         self.llm_service = LLMService()
 
-    def _build_retrieval_query(
-        self,
-        question: str,
-        history: str = "",
-    ) -> str:
-        """
-        Build a retrieval query using recent conversation
-        context so follow-up questions can retrieve the
-        correct document chunks.
-        """
-
-        if not history.strip():
-            return question
-
-        return f"""
-Previous conversation:
-{history}
-
-Current question:
-{question}
-""".strip()
+        self.query_rewrite_service = (
+            QueryRewriteService()
+        )
 
     def _prepare_prompt(
         self,
@@ -47,13 +30,26 @@ Current question:
         history: str = "",
     ) -> tuple[str | None, list]:
 
-        retrieval_query = self._build_retrieval_query(
-            question,
-            history,
+        # Rewrite follow-up questions into
+        # standalone search queries.
+        search_query = (
+            self.query_rewrite_service.rewrite(
+                question=question,
+                history=history,
+            )
         )
 
+        print(
+            f"Original question: {question}"
+        )
+
+        print(
+            f"Retrieval query: {search_query}"
+        )
+
+        # Search using the rewritten query.
         search_results = self.search_service.search(
-            query=retrieval_query,
+            query=search_query,
             top_k=5,
         )
 
@@ -70,6 +66,8 @@ Chunk: {result['chunk_index']}
             for result in search_results
         )
 
+        # The LLM receives the original question,
+        # not the rewritten search query.
         prompt = build_rag_prompt(
             context=context,
             question=question,
@@ -100,8 +98,12 @@ Chunk: {result['chunk_index']}
             sources.append(
                 {
                     "document_id": result["document_id"],
-                    "document_name": result["document_name"],
-                    "chunk_index": result["chunk_index"],
+                    "document_name": result[
+                        "document_name"
+                    ],
+                    "chunk_index": result[
+                        "chunk_index"
+                    ],
                     "score": result["score"],
                     "rerank_score": result.get(
                         "rerank_score"
@@ -165,5 +167,7 @@ Chunk: {result['chunk_index']}
 
         return (
             self.llm_service.stream(prompt),
-            self._build_sources(search_results),
+            self._build_sources(
+                search_results
+            ),
         )
