@@ -7,6 +7,11 @@ class ChatRequest(BaseModel):
         alias="conversationId",
     )
 
+    document_id: str | None = Field(
+        default=None,
+        alias="documentId",
+    )
+
     question: str
 
     model_config = ConfigDict(

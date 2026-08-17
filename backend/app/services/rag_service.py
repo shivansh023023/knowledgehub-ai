@@ -28,6 +28,7 @@ class RAGService:
         self,
         question: str,
         history: str = "",
+        document_id: str | None = None,
     ) -> tuple[str | None, list]:
 
         # Rewrite follow-up questions into
@@ -51,6 +52,7 @@ class RAGService:
         search_results = self.search_service.search(
             query=search_query,
             top_k=5,
+            document_id=document_id,
         )
 
         if not search_results:
@@ -117,12 +119,14 @@ Chunk: {result['chunk_index']}
         self,
         question: str,
         history: str = "",
+        document_id: str | None = None,
     ):
 
         prompt, search_results = (
             self._prepare_prompt(
                 question,
                 history,
+                document_id,
             )
         )
 
@@ -150,6 +154,7 @@ Chunk: {result['chunk_index']}
         self,
         question: str,
         history: str = "",
+        document_id: str | None = None,
     ) -> tuple[
         Generator[str, None, None] | None,
         list,
@@ -159,6 +164,7 @@ Chunk: {result['chunk_index']}
             self._prepare_prompt(
                 question,
                 history,
+                document_id,
             )
         )
 

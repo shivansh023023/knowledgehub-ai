@@ -74,6 +74,7 @@ class ChatService:
         self,
         question: str,
         conversation_id: str | None = None,
+        document_id: str | None = None,
     ):
         try:
             conversation, history = (
@@ -96,6 +97,7 @@ class ChatService:
             response = self.rag_service.chat(
                 question=question,
                 history=history,
+                document_id=document_id,
             )
 
             assistant_message = (
@@ -133,6 +135,7 @@ class ChatService:
         self,
         question: str,
         conversation_id: str | None = None,
+        document_id: str | None = None,
     ):
         conversation, history = (
             self._get_conversation_and_history(
@@ -154,6 +157,7 @@ class ChatService:
         stream, sources = self.rag_service.stream_chat(
             question=question,
             history=history,
+            document_id=document_id,
         )
 
         if stream is None:
