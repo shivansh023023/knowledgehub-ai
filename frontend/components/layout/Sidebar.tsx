@@ -75,25 +75,10 @@ export default function Sidebar() {
   // New Chat
   // -----------------------------
 
-  const handleNewChat = async () => {
-    try {
-      const conversation =
-        await createConversation();
-
-      addConversation(conversation);
-
-      setConversationId(
-        conversation.id
-      );
-
-      setMessages([]);
-    } catch (error) {
-      console.error(
-        "Failed to create conversation:",
-        error
-      );
-    }
-  };
+ const handleNewChat = () => {
+  setConversationId(null);
+  setMessages([]);
+};
 
   // -----------------------------
   // Open conversation
