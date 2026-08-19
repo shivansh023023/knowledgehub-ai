@@ -4,6 +4,9 @@ from sentence_transformers import CrossEncoder
 class CrossEncoderReranker:
     """Reranks retrieved chunks using a cross-encoder."""
 
+    SCORE_GAP_THRESHOLD = 4.0
+    MIN_RERANK_SCORE = 0.0
+
     def __init__(self):
         self.model = CrossEncoder(
             "cross-encoder/ms-marco-MiniLM-L-6-v2"
@@ -41,4 +44,38 @@ class CrossEncoderReranker:
             reverse=True,
         )
 
-        return reranked[:top_k]
+        reranked = reranked[:top_k]
+        # -------------------------
+        # Absolute relevance check
+        # -------------------------
+
+        if (
+            not reranked
+            or reranked[0]["rerank_score"]
+            < self.MIN_RERANK_SCORE
+        ):
+            return []
+
+        # -------------------------
+        # Adaptive relevance cutoff
+        # -------------------------
+
+        if len(reranked) <= 1:
+            return reranked
+
+        selected = [reranked[0]]
+
+        for current in reranked[1:]:
+            previous = selected[-1]
+
+            score_gap = (
+                previous["rerank_score"]
+                - current["rerank_score"]
+            )
+
+            if score_gap >= self.SCORE_GAP_THRESHOLD:
+                break
+
+            selected.append(current)
+
+        return selected
