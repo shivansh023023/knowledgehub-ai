@@ -2,13 +2,14 @@ from collections.abc import Generator
 
 from app.prompts.rag_prompt import build_rag_prompt
 from app.repositories.chunk_repository import ChunkRepository
+from app.services.grounding_validator import GroundingValidator
 from app.services.llm_service import LLMService
-from app.services.search_service import SearchService
 from app.services.query_rewrite_service import QueryRewriteService
+from app.services.search_service import SearchService
 
 
 class RAGService:
-    """Coordinates retrieval, reranking, and LLM generation."""
+    """Coordinates retrieval, reranking, grounding, and LLM generation."""
 
     def __init__(
         self,
@@ -20,6 +21,8 @@ class RAGService:
 
         self.llm_service = LLMService()
 
+        self.grounding_validator = GroundingValidator()
+
         self.query_rewrite_service = (
             QueryRewriteService()
         )
@@ -29,7 +32,7 @@ class RAGService:
         question: str,
         history: str = "",
         document_id: str | None = None,
-    ) -> tuple[str | None, list]:
+    ) -> tuple[str | None, list, str]:
 
         # Rewrite follow-up questions into
         # standalone search queries.
@@ -56,7 +59,7 @@ class RAGService:
         )
 
         if not search_results:
-            return None, []
+            return None, [], ""
 
         context = "\n\n".join(
             f"""
@@ -76,7 +79,7 @@ Chunk: {result['chunk_index']}
             history=history,
         )
 
-        return prompt, search_results
+        return prompt, search_results, context
 
     def _build_sources(
         self,
@@ -122,7 +125,7 @@ Chunk: {result['chunk_index']}
         document_id: str | None = None,
     ):
 
-        prompt, search_results = (
+        prompt, search_results, context = (
             self._prepare_prompt(
                 question,
                 history,
@@ -143,6 +146,34 @@ Chunk: {result['chunk_index']}
             prompt
         )
 
+        print("\n" + "=" * 70)
+        print("GROUNDING VALIDATION")
+        print("=" * 70)
+        print("ANSWER:")
+        print(answer)
+        print("-" * 70)
+        print("CONTEXT:")
+        print(context)
+        print("-" * 70)
+
+        is_grounded = (
+            self.grounding_validator.validate(
+                answer=answer,
+                context=context,
+            )
+        )
+
+        print(
+            f"GROUNDING RESULT: {is_grounded}"
+        )
+        print("=" * 70)
+
+        if not is_grounded:
+            answer = (
+                "I couldn't find that information "
+                "in the provided documents."
+            )
+
         return {
             "answer": answer,
             "sources": self._build_sources(
@@ -160,7 +191,7 @@ Chunk: {result['chunk_index']}
         list,
     ]:
 
-        prompt, search_results = (
+        prompt, search_results, context = (
             self._prepare_prompt(
                 question,
                 history,
@@ -171,8 +202,54 @@ Chunk: {result['chunk_index']}
         if prompt is None:
             return None, []
 
+        raw_stream = self.llm_service.stream(
+            prompt
+        )
+
+        def validated_stream():
+            answer_parts = []
+
+            # Collect the complete generated answer.
+            for token in raw_stream:
+                answer_parts.append(token)
+
+            answer = "".join(answer_parts)
+
+            # Debug information for grounding validation.
+            print("\n" + "=" * 70)
+            print("GROUNDING VALIDATION")
+            print("=" * 70)
+            print("ANSWER:")
+            print(answer)
+            print("-" * 70)
+            print("CONTEXT:")
+            print(context)
+            print("-" * 70)
+
+            # Validate the complete answer against
+            # the retrieved context.
+            is_grounded = (
+                self.grounding_validator.validate(
+                    answer=answer,
+                    context=context,
+                )
+            )
+
+            print(
+                f"GROUNDING RESULT: {is_grounded}"
+            )
+            print("=" * 70)
+
+            if not is_grounded:
+                answer = (
+                    "I couldn't find that information "
+                    "in the provided documents."
+                )
+
+            yield answer
+
         return (
-            self.llm_service.stream(prompt),
+            validated_stream(),
             self._build_sources(
                 search_results
             ),
