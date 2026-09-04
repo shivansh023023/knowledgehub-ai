@@ -29,6 +29,7 @@ def chat(
         return chat_service.chat(
             question=request.question,
             conversation_id=request.conversation_id,
+            document_id=request.document_id,
         )
 
     except ValueError as e:
@@ -50,6 +51,7 @@ def stream_chat(
             chat_service.stream_chat(
                 question=request.question,
                 conversation_id=request.conversation_id,
+                document_id=request.document_id,
             )
         )
 

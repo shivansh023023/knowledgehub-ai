@@ -12,6 +12,7 @@ import { useChatStore } from "@/stores/chatStore";
 export function useChat() {
   const {
     conversationId,
+    selectedDocumentId,
     messages,
     addMessage,
     updateMessage,
@@ -34,10 +35,6 @@ export function useChat() {
       setLoading(true);
       setError(null);
 
-      // -------------------------
-      // Add user message
-      // -------------------------
-
       const userMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
@@ -45,10 +42,6 @@ export function useChat() {
       };
 
       addMessage(userMessage);
-
-      // -------------------------
-      // Add empty assistant message
-      // -------------------------
 
       const assistantId = crypto.randomUUID();
 
@@ -59,18 +52,11 @@ export function useChat() {
         sources: [],
       });
 
-      // -------------------------
-      // Request body
-      // -------------------------
-
       const body: ChatRequest = {
         conversationId,
+        documentId: selectedDocumentId,
         question,
       };
-
-      // -------------------------
-      // Call backend
-      // -------------------------
 
       const response = await fetch(
         "http://localhost:8000/api/chat/stream",
@@ -94,10 +80,6 @@ export function useChat() {
           "No response stream received."
         );
       }
-
-      // -------------------------
-      // Read stream
-      // -------------------------
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -146,10 +128,6 @@ export function useChat() {
             continue;
           }
 
-          // -------------------------
-          // Conversation created
-          // -------------------------
-
           if (
             event.type === "conversation"
           ) {
@@ -161,8 +139,6 @@ export function useChat() {
                 newConversationId
               );
 
-              // Add conversation to sidebar
-              // immediately.
               addConversation({
                 id: newConversationId,
                 title: question
@@ -177,10 +153,6 @@ export function useChat() {
               });
             }
           }
-
-          // -------------------------
-          // Streaming token
-          // -------------------------
 
           else if (
             event.type === "token"
@@ -201,10 +173,6 @@ export function useChat() {
             );
           }
 
-          // -------------------------
-          // Complete answer
-          // -------------------------
-
           else if (
             event.type === "answer"
           ) {
@@ -217,10 +185,6 @@ export function useChat() {
             );
           }
 
-          // -------------------------
-          // Sources
-          // -------------------------
-
           else if (
             event.type === "sources"
           ) {
@@ -230,10 +194,6 @@ export function useChat() {
             );
           }
 
-          // -------------------------
-          // Finished
-          // -------------------------
-
           else if (
             event.type === "done"
           ) {
@@ -241,13 +201,6 @@ export function useChat() {
           }
         }
       }
-
-      // -------------------------
-      // Stream finished
-      // -------------------------
-      // Move the conversation to
-      // the top of the sidebar.
-      // -------------------------
 
       if (newConversationId) {
         touchConversation(
@@ -270,6 +223,7 @@ export function useChat() {
 
   return {
     conversationId,
+    selectedDocumentId,
     messages,
     loading,
     error,

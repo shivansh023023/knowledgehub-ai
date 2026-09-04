@@ -24,6 +24,7 @@ class ChatSource(BaseModel):
     document_name: str
     chunk_index: int
     score: float
+    rerank_score: float | None = None
 
 
 class ChatResponse(BaseModel):

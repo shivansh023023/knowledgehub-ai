@@ -8,8 +8,14 @@ interface ChatStore {
   messages: Message[];
   conversations: Conversation[];
 
+  // Selected document
+  selectedDocumentId: string | null;
+
   // Conversation ID
   setConversationId: (id: string | null) => void;
+
+  // Selected document
+  setSelectedDocumentId: (id: string | null) => void;
 
   // Messages
   setMessages: (messages: Message[]) => void;
@@ -66,6 +72,8 @@ export const useChatStore = create<ChatStore>(
 
     conversations: [],
 
+    selectedDocumentId: null,
+
     // -------------------------
     // Conversation ID
     // -------------------------
@@ -73,6 +81,15 @@ export const useChatStore = create<ChatStore>(
     setConversationId: (id) =>
       set({
         conversationId: id,
+      }),
+
+    // -------------------------
+    // Selected document
+    // -------------------------
+
+    setSelectedDocumentId: (id) =>
+      set({
+        selectedDocumentId: id,
       }),
 
     // -------------------------

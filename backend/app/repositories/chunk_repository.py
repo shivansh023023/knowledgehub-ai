@@ -194,16 +194,18 @@ class ChunkRepository:
             ).fetchall()
 
         else:
+            # SQLite FTS5 does not allow the table alias
+            # to be used as the argument to MATCH/bm25().
             rows = self.db.execute(
                 text(
                     """
                     SELECT
                         f.rowid,
-                        bm25(f) AS score
+                        bm25(document_chunks_fts) AS score
                     FROM document_chunks_fts AS f
                     JOIN document_chunks AS c
                         ON c.rowid = f.rowid
-                    WHERE f MATCH :query
+                    WHERE document_chunks_fts MATCH :query
                       AND c.document_id = :document_id
                     ORDER BY score
                     LIMIT :limit

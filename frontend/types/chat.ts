@@ -1,6 +1,8 @@
 export interface ChatRequest {
   conversationId: string | null;
 
+  documentId: string | null;
+
   question: string;
 }
 

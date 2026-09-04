@@ -5,7 +5,6 @@ class CrossEncoderReranker:
     """Reranks retrieved chunks using a cross-encoder."""
 
     SCORE_GAP_THRESHOLD = 4.0
-    MIN_RERANK_SCORE = 0.0
 
     def __init__(self):
         self.model = CrossEncoder(
@@ -45,20 +44,6 @@ class CrossEncoderReranker:
         )
 
         reranked = reranked[:top_k]
-        # -------------------------
-        # Absolute relevance check
-        # -------------------------
-
-        if (
-            not reranked
-            or reranked[0]["rerank_score"]
-            < self.MIN_RERANK_SCORE
-        ):
-            return []
-
-        # -------------------------
-        # Adaptive relevance cutoff
-        # -------------------------
 
         if len(reranked) <= 1:
             return reranked
